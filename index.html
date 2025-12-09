@@ -225,7 +225,8 @@ async function handleJoinClick(branch){
       }
 
       // optimistic notify then update on server
-      notify('参加しました');
+      localStorage.setItem('notifyAfterReload', '参加しました');
+      location.reload();;
       const { data } = await supabase.from('branches').select('members').eq('id', branch.id).maybeSingle();
       let members = (data && data.members) ? data.members.slice() : [];
       if(!members.includes(name)) members.push(name);
