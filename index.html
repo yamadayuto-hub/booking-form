@@ -15,17 +15,18 @@
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);font-family:"Noto Sans JP", -apple-system, system-ui, "Helvetica Neue", Arial;color:#111;display:flex;justify-content:center;padding:18px 12px 80px}
   .wrap{width:100%;max-width:var(--max-width)}
-  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-  .title{font-size:28px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .edit-link{color:#000;text-decoration:underline;font-size:14px;cursor:pointer;margin-left:12px;white-space:nowrap}
-  .section-title{font-size:18px;font-weight:700;margin:28px 0 12px;padding-left:2px}
+  /* header: relative so title can be exactly centered */
+  .top{position:relative;height:56px;margin-bottom:12px}
+  .title{font-size:28px;font-weight:600;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
+  .edit-link{position:absolute;right:0;top:8px;color:#000;text-decoration:underline;font-size:14px;cursor:pointer;white-space:nowrap}
+  .section-title{font-size:18px;font-weight:700;margin:28px 0 12px;padding-left:20px} /* moved slightly right */
   .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,0.04);margin-bottom:18px}
   label.small{display:block;color:var(--muted);font-size:13px;margin-bottom:8px}
-  select, button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #eaeaea;font-size:15px;background:#fff}
+  select, button, input[type="text"], input[type="date"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #eaeaea;font-size:15px;background:#fff}
   button.primary{background:var(--accent);color:#fff;border:0;padding:10px;border-radius:10px;font-weight:700;cursor:pointer}
   /* branch */
   #reserveList{padding:10px}
-  .branch{background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+  .branch{background:#fff;border-radius:12px;padding:8px 10px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
   .branch-date{font-size:14px;color:#444;margin-bottom:6px}
   .branch-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-bottom:6px}
   .branch-members{font-size:14px;color:#333;margin-bottom:8px;word-break:break-word}
@@ -43,12 +44,15 @@
 <div class="wrap">
   <div class="top">
     <div class="title">飯行く日</div>
-    <div style="margin-left:12px"><a class="edit-link" id="editNameBtn">表示名修正</a></div>
+    <a class="edit-link" id="editNameBtn">表示名修正</a>
   </div>
 
   <div class="section-title">新規作成</div>
   <div class="card" id="newCard">
-    <label class="small">日付</label>
+    <label class="small">タイトル（任意）</label>
+    <input type="text" id="newTitle" placeholder="例: 大学忘年会（あとで編集可）">
+
+    <label class="small" style="margin-top:10px">日付</label>
     <select id="newDate"></select>
 
     <label class="small" style="margin-top:10px">時間帯</label>
@@ -74,10 +78,9 @@
 <div class="notif" id="notif"></div>
 
 <script>
-/* ================== Supabase 設定（ここをあなたの値に置き換える） ================== */
-const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";    // <- 置換
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYmZjcGF4c3JnZWJ4anRrdmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODY4ODAsImV4cCI6MjA4MDc2Mjg4MH0.8Mp6MotCT5z2rTd0iIWhXz3aV696ijBEkYk9tVIYpgw";                  // <- 置換
-/* ============================================================================== */
+/* ================== Supabase 設定 ================== */
+const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYmZjcGF4c3JnZWJ4anRrdmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODY4ODAsImV4cCI6MjA4MDc2Mjg4MH0.8Mp6MotCT5z2rTd0iIWhXz3aV696ijBEkYk9tVIYpgw";
 
 let useSupabase = SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes("YOUR");
 if(useSupabase){
@@ -102,7 +105,7 @@ const editNameBtn = document.getElementById('editNameBtn');
 /* ---------- name handling ---------- */
 function getName(){ return localStorage.getItem('meeting_app_username') || ''; }
 function ensureName(){ const n = getName(); if(!n){ alert('表示名が未設定です。表示名入力ページに移動します'); location.href='name.html'; return false } return true; }
-editNameBtn.addEventListener('click', ()=> location.href='name.html');
+editNameBtn.addEventListener('click', ()=> { location.href='name.html?edit=1'; });
 
 /* ---------- populate date options (select) ---------- */
 function populateDates(){
@@ -114,8 +117,8 @@ function populateDates(){
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,'0');
     const dd = String(d.getDate()).padStart(2,'0');
-    const iso = `${yyyy}-${mm}-${dd}`; // value
-    const display = `${String(yyyy).slice(2)}/${mm}/${dd}`;
+    const iso = `${yyyy}-${mm}-${dd}`; // value (iso)
+    const display = `${String(yyyy).slice(2)}/${mm}/${dd}`; // display like 25/12/29
     const o = document.createElement('option'); o.value=iso; o.textContent=display;
     newDateSel.appendChild(o);
     d.setDate(d.getDate()+1);
@@ -123,7 +126,7 @@ function populateDates(){
 }
 populateDates();
 
-/* ---------- local fallback helpers ---------- */
+/* ---------- helpers for local fallback ---------- */
 function readLocal(){ try{ return JSON.parse(localStorage.getItem('meeting_app_branches')||'[]'); }catch(e){return[]} }
 function writeLocal(list){ localStorage.setItem('meeting_app_branches', JSON.stringify(list)); }
 
@@ -131,6 +134,7 @@ function writeLocal(list){ localStorage.setItem('meeting_app_branches', JSON.str
 async function fetchBranchesSupabase(){
   loadingEl.textContent = '読み込み中...';
   try{
+    // fetch all rows
     const { data, error } = await supabase.from('branches').select('*').order('date', {ascending:true}).order('time',{ascending:true});
     if(error) throw error;
     return data || [];
@@ -139,25 +143,15 @@ async function fetchBranchesSupabase(){
 
 /* ---------- render ---------- */
 function normalizeDateIsoToYYMMDD(iso){
-  // iso: yyyy-mm-dd
   if(!iso) return '';
   const p = iso.split('-'); if(p.length!==3) return iso;
   return p[0].slice(2)+'/'+p[1]+'/'+p[2];
 }
-function dateStorageFormatFromRecord(rec){
-  // rec.date may be '25/12/29' or '2026-01-03' etc.
-  if(!rec) return '';
-  if(typeof rec.date === 'string'){
-    if(rec.date.indexOf('-')>=0) return normalizeDateIsoToYYMMDD(rec.date);
-    return rec.date;
-  }
-  return rec.date;
-}
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 function renderBranches(list){
-  // list: array
   if(!Array.isArray(list)) list = [];
-  // sort by date/time
+  // sort by date/time properly
   list.sort((a,b)=>{
     const da = (a.date.indexOf('-')>=0 ? a.date.replace(/-/g,'/') : a.date);
     const db = (b.date.indexOf('-')>=0 ? b.date.replace(/-/g,'/') : b.date);
@@ -177,7 +171,7 @@ function renderBranches(list){
     const dateDisplay = (b.date.indexOf('-')>=0) ? normalizeDateIsoToYYMMDD(b.date) : b.date;
     el.innerHTML = `
       <div class="branch-date">${dateDisplay} / ${b.time} / ${b.place}</div>
-      <div class="branch-title"><span>${b.title?escapeHtml(b.title):'（タイトル未設定）'}</span><span class="pencil" title="タイトル編集">📝</span></div>
+      <div class="branch-title"><span>${escapeHtml(b.title || '（タイトル未設定）')}</span><span class="pencil" title="タイトル編集">📝</span></div>
       <div class="branch-members">${Array.isArray(b.members)? b.members.join('、') : ''}</div>
     `;
 
@@ -187,15 +181,18 @@ function renderBranches(list){
     actions.appendChild(btnJoin); actions.appendChild(btnLeave);
     el.appendChild(actions);
 
-    // attach events
+    // title edit handler
     el.querySelector('.pencil').addEventListener('click', async (e)=>{
       e.stopPropagation();
       const newTitle = prompt('タイトルを編集（誰でも編集可能）', b.title || '');
       if(newTitle === null) return;
       const trimmed = String(newTitle).trim();
       if(useSupabase){
-        try{ await supabase.from('branches').update({ title: trimmed }).eq('id', b.id); notify('タイトルを変更しました'); }
-        catch(e){ console.error(e); alert('タイトル更新に失敗しました'); }
+        try{
+          await supabase.from('branches').update({ title: trimmed }).eq('id', b.id);
+          // force reload so the editor sees change
+          location.reload();
+        }catch(e){ console.error(e); alert('タイトル更新に失敗しました'); }
       } else {
         const local = readLocal(); const idx = local.findIndex(x=>x.id===b.id);
         if(idx>=0){ local[idx].title = trimmed; writeLocal(local); renderBranches(local); notify('タイトルを変更しました'); }
@@ -208,66 +205,93 @@ function renderBranches(list){
     reserveListWrap.appendChild(el);
   });
 }
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-/* ---------- join/leave logic (client optimistic + server) ---------- */
+/* ---------- join/leave logic (with checks) ---------- */
 async function handleJoinClick(branch){
   const name = getName(); if(!name) return ensureName();
-  // conflict check: same date/time already joined
-  const sameDate = (x) => {
-    const dx = x.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(x.date) : x.date;
-    const bx = branch.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(branch.date) : branch.date;
-    return dx === bx && x.time === branch.time && x.members && x.members.includes(name);
-  };
 
-  // check locally first if useSupabase - we'll query server
-  if(useSupabase){
-    try{
-      const { data: conflicts, error } = await supabase.from('branches').select('id').eq('date', branch.date).eq('time', branch.time).contains('members',[name]);
+  // check if this user already joined another branch same date+time
+  try{
+    if(useSupabase){
+      // branch.date stored as '25/12/29' or '26/01/03' etc; if incoming branch.date is iso (yyyy-mm-dd) convert
+      const dateToCheck = branch.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(branch.date) : branch.date;
+      const { data: conflicts, error } = await supabase
+        .from('branches')
+        .select('id')
+        .eq('date', dateToCheck)
+        .eq('time', branch.time)
+        .contains('members',[name]);
       if(error) throw error;
-      if(conflicts && conflicts.length>0){ alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); return; }
-    }catch(e){ console.error(e); }
-    // optimistic UI: notify immediately
-    notify('参加しました');
-    // fetch current members, append if absent, write back
-    try{
-      // read current row
+      if(conflicts && conflicts.length>0){
+        alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); 
+        return;
+      }
+
+      // optimistic notify then update on server
+      notify('参加しました');
       const { data } = await supabase.from('branches').select('members').eq('id', branch.id).maybeSingle();
       let members = (data && data.members) ? data.members.slice() : [];
       if(!members.includes(name)) members.push(name);
       await supabase.from('branches').update({ members }).eq('id', branch.id);
-      // supabase realtime will update UI for all clients
-    }catch(e){ console.error(e); alert('参加処理でエラーが発生しました'); }
-  } else {
-    const local = readLocal();
-    const idx = local.findIndex(x=>x.id===branch.id);
-    if(idx>=0 && !local[idx].members.includes(name)){
-      local[idx].members.push(name);
-      writeLocal(local); renderBranches(local); notify('参加しました');
+
+      // reflect immediately on this client
+      location.reload();
+    } else {
+      const local = readLocal();
+      // conflict check locally
+      const already = local.some(x=>{
+        const dx = x.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(x.date) : x.date;
+        const bx = branch.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(branch.date) : branch.date;
+        return dx===bx && x.time===branch.time && x.members && x.members.includes(name);
+      });
+      if(already){ alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); return; }
+
+      const idx = local.findIndex(x=>x.id===branch.id);
+      if(idx>=0 && !local[idx].members.includes(name)){
+        local[idx].members.push(name);
+        writeLocal(local);
+        renderBranches(local);
+        notify('参加しました');
+      }
     }
+  }catch(e){
+    console.error(e);
+    alert('参加処理でエラーが発生しました');
   }
 }
 
 async function handleLeaveClick(branch){
   const name = getName(); if(!name) return ensureName();
+
   if(useSupabase){
     try{
-      // get current members
+      // read current members
       const { data } = await supabase.from('branches').select('members').eq('id', branch.id).maybeSingle();
       let members = (data && data.members) ? data.members.slice() : [];
+
+      // if user not in members -> alert and return
+      if(!members.includes(name)){
+        alert('あなたは参加していません');
+        return;
+      }
+
+      // remove
       members = members.filter(m=>m !== name);
       if(members.length === 0){
-        // delete branch
         await supabase.from('branches').delete().eq('id', branch.id);
       } else {
         await supabase.from('branches').update({ members }).eq('id', branch.id);
       }
       notify('取り消しました');
+      // reflect immediately
+      location.reload();
     }catch(e){ console.error(e); alert('取り消しでエラーが発生しました'); }
   } else {
     const local = readLocal();
     const idx = local.findIndex(x=>x.id===branch.id);
     if(idx>=0){
+      // check membership
+      if(!local[idx].members.includes(name)){ alert('あなたは参加していません'); return; }
       local[idx].members = local[idx].members.filter(m=>m!==name);
       if(local[idx].members.length===0) local.splice(idx,1);
       writeLocal(local); renderBranches(local); notify('取り消しました');
@@ -275,33 +299,56 @@ async function handleLeaveClick(branch){
   }
 }
 
-/* ---------- create branch ---------- */
+/* ---------- create branch (allow duplicate branches same date/time but ensure user not already participating same date/time) ---------- */
 createBtn.addEventListener('click', async ()=>{
   const name = getName(); if(!name) return ensureName();
   const iso = newDateSel.value; if(!iso){ alert('日付を選んでください'); return; }
   const date = normalizeDateIsoToYYMMDD(iso);
   const time = newTimeSel.value;
   const place = newPlaceSel.value;
+  const titleInput = (document.getElementById('newTitle') && document.getElementById('newTitle').value) ? document.getElementById('newTitle').value.trim() : '';
 
   // double-check iso in options
   const allowed = Array.from(newDateSel.options).map(o=>o.value);
   if(!allowed.includes(iso)){ alert('有効な日付を選んでください'); return; }
 
-  if(useSupabase){
-    try{
+  try{
+    // ensure user is not already participating at same date+time
+    if(useSupabase){
+      const { data: conflicts, error } = await supabase.from('branches').select('id').eq('date', date).eq('time', time).contains('members',[name]);
+      if(error) throw error;
+      if(conflicts && conflicts.length>0){
+        alert('同じ日・時間帯には既に参加済みです。先に取り消してください。');
+        return;
+      }
+      // insert branch and automatically include creator as member
+      await supabase.from('branches').insert([{ date, time, place, title: titleInput || '', members: [name] }]);
       notify('作成しました');
-      await supabase.from('branches').insert([{ date: date, time: time, place: place, title: '', members: [name] }]);
-      // realtime updates other clients
-    }catch(e){ console.error(e); alert('作成に失敗しました'); }
-  } else {
-    const local = readLocal();
-    const b = { id: uid(), date: date, time: time, place: place, title:'', members:[name] };
-    local.push(b); writeLocal(local); renderBranches(local); notify('作成しました');
+      location.reload();
+    } else {
+      const local = readLocal();
+      const already = local.some(x=>{
+        const dx = x.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(x.date) : x.date;
+        return dx===date && x.time===time && x.members && x.members.includes(name);
+      });
+      if(already){ alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); return; }
+      const b = { id: uid(), date: date, time: time, place: place, title: titleInput || '', members:[name] };
+      local.push(b); writeLocal(local); renderBranches(local); notify('作成しました');
+    }
+  }catch(e){
+    console.error(e); alert('作成に失敗しました');
   }
 });
 
 /* ---------- initial load + realtime subscribe ---------- */
 async function bootstrap(){
+  // initial redirect to name page if no name
+  const name = getName();
+  if(!name){
+    location.href = 'name.html';
+    return;
+  }
+
   if(!useSupabase){
     // local fallback: ensure presets exist once
     let local = readLocal();
@@ -314,10 +361,9 @@ async function bootstrap(){
     }
     renderBranches(local);
   } else {
-    // fetch and render
+    // fetch and render; ensure presets are present server-side if empty
     const data = await fetchBranchesSupabase();
     if(!data || data.length===0){
-      // insert presets if empty
       try{
         await supabase.from('branches').insert([
           { date:'25/12/29', time:'夜', place:'京都', title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
@@ -328,7 +374,7 @@ async function bootstrap(){
     const fresh = await fetchBranchesSupabase();
     renderBranches(fresh);
 
-    // subscribe realtime
+    // subscribe realtime; when remote changes detected, re-fetch and re-render
     supabase.channel('public:branches')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, payload => {
         (async ()=>{
