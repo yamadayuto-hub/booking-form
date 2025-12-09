@@ -3,236 +3,251 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>予約フォーム</title>
+<title>飯行く日</title>
+
+<!-- Instagram in-app browser → 強制デフォルトブラウザへ -->
+<script>
+  if (navigator.userAgent.includes("Instagram")) {
+    window.location.href = location.href; 
+  }
+</script>
+
 <style>
   body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    background: #f8f8f6;
     margin: 0;
-    padding: 0;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background: #f5f5f5;
+    padding: 20px;
     color: #111;
-    opacity: 0;
-    transition: opacity 0.8s ease;
-    letter-spacing: 0.02em;
-  }
-  body.loaded { opacity: 1; }
-
-  .container {
-    max-width: 640px;
-    margin: 0 auto;
-    padding: 32px 16px;
+    line-height: 1.7;
   }
 
   h1 {
+    font-size: 26px;
     font-weight: 500;
-    font-size: 24px;
-    margin-bottom: 24px;
-    text-align: center;
+    margin-bottom: 10px;
+    opacity: 0;
+    animation: fadeIn 1s forwards;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 35px;
+    opacity: 0;
+    animation: fadeIn 1s forwards;
   }
 
   .section {
-    margin-bottom: 32px;
-    padding: 24px;
-    background: #fff;
+    margin-top: 20px;
+    background: #ffffffc0;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    padding: 15px 18px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 12px #00000010;
     opacity: 0;
-    transform: translateY(20px);
-    animation: fadeUp 0.8s ease forwards;
+    animation: fadeIn 1s forwards;
   }
 
-  @keyframes fadeUp {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .branch {
+    padding: 12px 14px;
+    margin: 12px 0;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e5e5e5;
+    transition: 0.25s;
   }
 
-  label {
-    display: block;
+  .branch:hover {
+    background: #f0f0ee;
+  }
+
+  .participants {
+    margin-top: 10px;
+    padding-left: 15px;
+    color: #444;
+  }
+
+  .join-btn {
+    margin-top: 8px;
+    display: inline-block;
+    padding: 7px 14px;
+    border: 1px solid #222;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.25s;
     font-size: 14px;
-    margin-bottom: 8px;
   }
 
-  input[type="text"], select {
+  .join-btn:hover {
+    background: #222;
+    color: #fff;
+  }
+
+  input, select, button {
     width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid #ccc;
+    padding: 10px;
+    margin-top: 6px;
     border-radius: 8px;
-    background: #fafafa;
+    border: 1px solid #bbb;
+    background: white;
+    font-size: 15px;
   }
 
   button {
-    width: 100%;
-    padding: 14px;
-    font-size: 16px;
-    border: none;
-    border-radius: 8px;
-    background: #111;
-    color: #fff;
     cursor: pointer;
-    margin-top: 16px;
-  }
-  button:hover { opacity: 0.8; }
-
-  .slot-list {
-    display: grid;
-    gap: 16px;
+    background: #111;
+    color: white;
+    margin-top: 15px;
+    border-radius: 10px;
+    transition: 0.3s;
   }
 
-  .slot {
-    padding: 16px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background: #fff;
+  button:hover {
+    opacity: 0.8;
   }
 
-  .slot h3 {
-    margin: 0 0 12px 0;
-    font-size: 18px;
-  }
-
-  .names {
-    font-size: 14px;
-    color: #666;
-    margin-top: 8px;
+  @keyframes fadeIn {
+    from {opacity: 0; transform: translateY(8px);}
+    to   {opacity: 1; transform: none;}
   }
 </style>
 </head>
+
 <body>
-<div class="container">
-  <h1>参加予約フォーム</h1>
 
-  <div class="section" id="nameSection">
-    <label>あなたの表示名（10文字以内 / 日本語OK）</label>
-    <input type="text" id="username" maxlength="10" placeholder="例：山田 / りょーすけ" />
-    <button onclick="saveName()">保存して次へ</button>
-  </div>
+<h1>飯行く日</h1>
 
-  <div class="section" id="formSection" style="display:none;">
-    <label>日付</label>
-    <select id="dateSelect"></select>
+<!-- 名前入力（初回のみ） -->
+<div id="nameInputSection" class="section" style="display:none;">
+  <h2>あなたの名前</h2>
+  <p>今後自動で使われるので1度だけ入力してください</p>
+  <input id="usernameInput" placeholder="名前（例: Yama23 / やま / 🐱など）" />
+  <button onclick="saveName()">保存</button>
+</div>
 
-    <label>時間</label>
-    <select id="timeSelect">
-      <option value="昼">昼</option>
-      <option value="夜">夜</option>
-    </select>
+<!-- 他の約束リスト -->
+<h2>他の約束</h2>
+<div id="reservationList" class="section"></div>
 
-    <label>地域</label>
-    <select id="areaSelect">
-      <option value="橋本">橋本</option>
-      <option value="京都">京都</option>
-      <option value="大阪">大阪</option>
-    </select>
-
-    <button onclick="submitVote()">予約する</button>
-
-    <button onclick="cancelVote()" style="background:#999;">取り消す</button>
-  </div>
-
-  <div class="section" id="resultSection" style="display:none;">
-    <h2>みんなの予約</h2>
-    <div class="slot-list" id="slotList"></div>
-  </div>
+<!-- 新規予約 -->
+<h2>新しく追加</h2>
+<div class="section">
+  <input id="newDate" type="date" />
+  <input id="newTitle" placeholder="タイトル（例：大学忘年会）" />
+  <button onclick="addReservation()">追加する</button>
 </div>
 
 <script>
-  // -------- Instagram から自動で外部ブラウザへ飛ばす --------
-  const ua = navigator.userAgent || navigator.vendor || window.opera;
-  if (ua.includes("Instagram")) {
-    window.location.href = window.location.href;
+/* ==========================
+   ① ローカルストレージで名前管理
+   ========================== */
+let username = localStorage.getItem("username");
+
+function saveName() {
+  const name = document.getElementById("usernameInput").value.trim();
+  if (!name) return alert("名前を入力してください");
+  localStorage.setItem("username", name);
+  username = name;
+  document.getElementById("nameInputSection").style.display = "none";
+  render();
+}
+
+if (!username) {
+  document.getElementById("nameInputSection").style.display = "block";
+}
+
+/* ==========================
+   ② 予約データ（あなたの指定をプリセット）
+   ========================== */
+
+let reservations = JSON.parse(localStorage.getItem("reservations")) || {
+  "2024-12-29": {
+    title: "大学忘年会",
+    members: ["Hirao", "トキツ", "藤木"]
+  },
+  "2025-01-03": {
+    title: "中学同窓会",
+    members: ["Ogawa", "かずき", "MOE", "Ami", "yuina"]
   }
+};
 
-  // -------- 初期ロードフェード --------
-  window.onload = () => document.body.classList.add("loaded");
+/* ==========================
+   ③ 予約を保存
+   ========================== */
+function saveReservations() {
+  localStorage.setItem("reservations", JSON.stringify(reservations));
+}
 
-  // -------- 名前管理 --------
-  const savedName = localStorage.getItem("username");
-  if (savedName) {
-    document.getElementById("nameSection").style.display = "none";
-    document.getElementById("formSection").style.display = "block";
-    document.getElementById("resultSection").style.display = "block";
-  }
+/* ==========================
+   ④ 予約表示（空データは出さない）
+   ========================== */
+function render() {
+  const list = document.getElementById("reservationList");
+  list.innerHTML = "";
 
-  function saveName() {
-    const name = document.getElementById("username").value.trim();
-    if (!name) return alert("名前を入力してください");
-    localStorage.setItem("username", name);
+  const dates = Object.keys(reservations).sort();
 
-    document.getElementById("nameSection").style.display = "none";
-    document.getElementById("formSection").style.display = "block";
-    document.getElementById("resultSection").style.display = "block";
-  }
+  dates.forEach(date => {
+    const data = reservations[date];
+    if (!data.members.length) return;
 
-  // -------- 日付生成（12/29〜1/4） --------
-  const dateSelect = document.getElementById("dateSelect");
-  const dates = ["12/29", "12/30", "12/31", "1/1", "1/2", "1/3", "1/4"];
-  dates.forEach(d => {
-    const op = document.createElement("option");
-    op.value = d;
-    op.textContent = d;
-    dateSelect.appendChild(op);
+    const box = document.createElement("div");
+    box.className = "branch";
+
+    const title = `${date} – ${data.title}`;
+    box.innerHTML = `<strong>${title}</strong>`;
+
+    const p = document.createElement("div");
+    p.className = "participants";
+    p.innerHTML = data.members.join(", ");
+    box.appendChild(p);
+
+    // 参加するボタン
+    const join = document.createElement("div");
+    join.className = "join-btn";
+    join.textContent = "ここに参加する";
+    join.onclick = () => {
+      if (!username) return alert("先に名前を入力してください");
+      if (!data.members.includes(username)) {
+        data.members.push(username);
+        saveReservations();
+        render();
+      } else {
+        alert("すでに参加しています");
+      }
+    };
+
+    box.appendChild(join);
+    list.appendChild(box);
   });
+}
 
-  // -------- 投票 DB（簡易版 / 実際は Supabase などに置き換え可） --------
-  let votes = JSON.parse(localStorage.getItem("votes") || "{}");
+/* ==========================
+   ⑤ 新規予約の追加
+   ========================== */
+function addReservation() {
+  const date = document.getElementById("newDate").value;
+  const title = document.getElementById("newTitle").value.trim();
 
-  function submitVote() {
-    const name = localStorage.getItem("username");
-    const date = dateSelect.value;
-    const time = document.getElementById("timeSelect").value;
-    const area = document.getElementById("areaSelect").value;
+  if (!date || !title) return alert("日付とタイトルは必須です");
 
-    const key = `${date}_${time}_${area}`;
-    if (!votes[key]) votes[key] = [];
-    if (!votes[key].includes(name)) votes[key].push(name);
-
-    localStorage.setItem("votes", JSON.stringify(votes));
-    alert("予約しました");
-    renderSlots();
+  if (!reservations[date]) {
+    reservations[date] = { title: title, members: [] };
+  } else {
+    reservations[date].title = title;
   }
 
-  function cancelVote() {
-    const name = localStorage.getItem("username");
-    const date = dateSelect.value;
-    const time = document.getElementById("timeSelect").value;
-    const area = document.getElementById("areaSelect").value;
-    const key = `${date}_${time}_${area}`;
+  saveReservations();
+  render();
 
-    if (votes[key]) {
-      votes[key] = votes[key].filter(n => n !== name);
-      localStorage.setItem("votes", JSON.stringify(votes));
-      alert("取り消しました");
-      renderSlots();
-    }
-  }
+  document.getElementById("newDate").value = "";
+  document.getElementById("newTitle").value = "";
+}
 
-  // -------- スロット表示 --------
-  function renderSlots() {
-    const list = document.getElementById("slotList");
-    list.innerHTML = "";
-
-    dates.forEach(date => {
-      ["昼", "夜"].forEach(time => {
-        ["橋本", "京都", "大阪"].forEach(area => {
-          const key = `${date}_${time}_${area}`;
-          const names = votes[key] || [];
-
-          const div = document.createElement("div");
-          div.className = "slot";
-          div.innerHTML = `
-            <h3>${date} ${time} / ${area}</h3>
-            <div class="names">${names.length ? names.join("、") : "（まだいません）"}</div>
-          `;
-          list.appendChild(div);
-        });
-      });
-    });
-  }
-
-  renderSlots();
+// 初期表示
+render();
 </script>
+
 </body>
 </html>
