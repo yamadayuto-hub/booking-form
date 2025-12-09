@@ -11,7 +11,6 @@
   .wrap{max-width:520px;margin:0 auto;background:transparent}
   .card{background:var(--card);padding:22px;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,0.06)}
   h1{margin:0 0 12px;font-size:22px}
-  p{color:#666;margin:0 0 16px}
   input{width:100%;padding:12px;border-radius:10px;border:1px solid #e6e6e6;font-size:16px;margin-bottom:12px}
   button.primary{width:100%;padding:12px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
   .hint{font-size:13px;color:#999;margin-top:8px;text-align:center}
@@ -20,7 +19,7 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>表示名を入力してください</h1>
+      <h1>表示名を入力</h1>
       <input id="displayName" type="text" maxlength="20" placeholder="例: 大谷 / Shohei / 翔平" />
       <button class="primary" id="saveBtn">保存して続ける</button>
       <div class="hint">後で「表示名修正」で変更できます</div>
@@ -28,19 +27,34 @@
   </div>
 
 <script>
+function queryParam(name){
+  const p = new URLSearchParams(location.search);
+  return p.get(name);
+}
+
+// prefill if available
+(function(){
+  const existing = localStorage.getItem('meeting_app_username') || '';
+  const editMode = queryParam('edit') === '1';
+  const input = document.getElementById('displayName');
+  if(existing && !editMode){
+    // normal load while name exists -> go to main
+    location.replace('index.html');
+    return;
+  }
+  // if edit mode, prefill with existing name (may be empty)
+  if(existing && editMode){
+    input.value = existing;
+  }
+})();
+
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   const v = (document.getElementById('displayName').value || '').trim().slice(0,20);
   if(!v){ alert('表示名を入力してください'); return; }
   localStorage.setItem('meeting_app_username', v);
-  // jump to main
+  // if came here from edit param, go back to index; otherwise go to index too
   location.href = 'index.html';
 });
-
-// if already set, go straight to index
-(function(){
-  const n = localStorage.getItem('meeting_app_username');
-  if(n){ location.replace('index.html'); }
-})();
 </script>
 </body>
 </html>
