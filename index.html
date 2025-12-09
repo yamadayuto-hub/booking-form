@@ -6,7 +6,13 @@
 <title>飯行く日</title>
 
 <!-- Supabase client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">window.addEventListener('DOMContentLoaded', ()=>{
+  const msg = localStorage.getItem('notifyAfterReload');
+  if(msg){
+    notify(msg);
+    localStorage.removeItem('notifyAfterReload');
+  }
+});</script>
 
 <style>
   :root{
