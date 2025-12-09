@@ -1,253 +1,153 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>飯行く日</title>
-
-<!-- Instagram in-app browser → 強制デフォルトブラウザへ -->
-<script>
-  if (navigator.userAgent.includes("Instagram")) {
-    window.location.href = location.href; 
-  }
-</script>
-
-<style>
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-    background: #f8f8f6;
-    margin: 0;
-    padding: 20px;
-    color: #111;
-    line-height: 1.7;
-  }
-
-  h1 {
-    font-size: 26px;
-    font-weight: 500;
-    margin-bottom: 10px;
-    opacity: 0;
-    animation: fadeIn 1s forwards;
-  }
-
-  h2 {
-    font-size: 18px;
-    font-weight: 500;
-    margin-top: 35px;
-    opacity: 0;
-    animation: fadeIn 1s forwards;
-  }
-
-  .section {
-    margin-top: 20px;
-    background: #ffffffc0;
-    border-radius: 12px;
-    padding: 15px 18px;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 12px #00000010;
-    opacity: 0;
-    animation: fadeIn 1s forwards;
-  }
-
-  .branch {
-    padding: 12px 14px;
-    margin: 12px 0;
-    border-radius: 10px;
-    background: #fff;
-    border: 1px solid #e5e5e5;
-    transition: 0.25s;
-  }
-
-  .branch:hover {
-    background: #f0f0ee;
-  }
-
-  .participants {
-    margin-top: 10px;
-    padding-left: 15px;
-    color: #444;
-  }
-
-  .join-btn {
-    margin-top: 8px;
-    display: inline-block;
-    padding: 7px 14px;
-    border: 1px solid #222;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: 0.25s;
-    font-size: 14px;
-  }
-
-  .join-btn:hover {
-    background: #222;
-    color: #fff;
-  }
-
-  input, select, button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 6px;
-    border-radius: 8px;
-    border: 1px solid #bbb;
-    background: white;
-    font-size: 15px;
-  }
-
-  button {
-    cursor: pointer;
-    background: #111;
-    color: white;
-    margin-top: 15px;
-    border-radius: 10px;
-    transition: 0.3s;
-  }
-
-  button:hover {
-    opacity: 0.8;
-  }
-
-  @keyframes fadeIn {
-    from {opacity: 0; transform: translateY(8px);}
-    to   {opacity: 1; transform: none;}
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>飯行く日</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    header {
+      padding: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+    .section-title {
+      margin: 20px;
+      padding: 10px 15px;
+      background: #fff;
+      border-radius: 8px;
+      font-size: 20px;
+      font-weight: bold;
+      border: 1px solid #ddd;
+    }
+    .container {
+      padding: 0 20px 40px;
+    }
+    .card {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      background: #333;
+      color: #fff;
+      cursor: pointer;
+    }
+    #name-edit-btn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      padding: 8px 12px;
+      background: #444;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  </style>
 </head>
-
 <body>
+  <header>飯行く日</header>
+  <button id="name-edit-btn" onclick="location.href='name_edit.html'">名前を修正</button>
 
-<h1>飯行く日</h1>
+  <div class="section-title">新しく追加</div>
+  <div class="container">
+    <div class="card">
+      <label>日付</label>
+      <input type="date" id="new-date" min="2025-12-29" max="2026-01-04" />
 
-<!-- 名前入力（初回のみ） -->
-<div id="nameInputSection" class="section" style="display:none;">
-  <h2>あなたの名前</h2>
-  <p>今後自動で使われるので1度だけ入力してください</p>
-  <input id="usernameInput" placeholder="名前（例: Yama23 / やま / 🐱など）" />
-  <button onclick="saveName()">保存</button>
-</div>
+      <label>時間帯</label>
+      <select id="new-time">
+        <option value="昼">昼</option>
+        <option value="夜">夜</option>
+      </select>
 
-<!-- 他の約束リスト -->
-<h2>他の約束</h2>
-<div id="reservationList" class="section"></div>
+      <label>タイトル</label>
+      <input id="new-title" placeholder="例: ご飯 / 飲み / 集まり" />
 
-<!-- 新規予約 -->
-<h2>新しく追加</h2>
-<div class="section">
-  <input id="newDate" type="date" />
-  <input id="newTitle" placeholder="タイトル（例：大学忘年会）" />
-  <button onclick="addReservation()">追加する</button>
-</div>
+      <button onclick="addEvent()">追加</button>
+    </div>
+  </div>
 
-<script>
-/* ==========================
-   ① ローカルストレージで名前管理
-   ========================== */
-let username = localStorage.getItem("username");
+  <div class="section-title">他の約束</div>
+  <div class="container" id="event-list"></div>
 
-function saveName() {
-  const name = document.getElementById("usernameInput").value.trim();
-  if (!name) return alert("名前を入力してください");
-  localStorage.setItem("username", name);
-  username = name;
-  document.getElementById("nameInputSection").style.display = "none";
-  render();
-}
+  <script>
+    const eventList = document.getElementById("event-list");
 
-if (!username) {
-  document.getElementById("nameInputSection").style.display = "block";
-}
+    const initialEvents = [
+      { date: "2025/12/29", time: "夜", title: "大学忘年会", members: ["Hirao", "トキツ", "藤木"] },
+      { date: "2026/01/03", time: "夜", title: "中学同窓会", members: ["Ogawa", "かずき", "MOE", "Ami", "yuina"] }
+    ];
 
-/* ==========================
-   ② 予約データ（あなたの指定をプリセット）
-   ========================== */
+    function loadEvents() {
+      const saved = localStorage.getItem("events");
+      return saved ? JSON.parse(saved) : initialEvents;
+    }
 
-let reservations = JSON.parse(localStorage.getItem("reservations")) || {
-  "2024-12-29": {
-    title: "大学忘年会",
-    members: ["Hirao", "トキツ", "藤木"]
-  },
-  "2025-01-03": {
-    title: "中学同窓会",
-    members: ["Ogawa", "かずき", "MOE", "Ami", "yuina"]
-  }
-};
+    function saveEvents(events) {
+      localStorage.setItem("events", JSON.stringify(events));
+    }
 
-/* ==========================
-   ③ 予約を保存
-   ========================== */
-function saveReservations() {
-  localStorage.setItem("reservations", JSON.stringify(reservations));
-}
+    function renderEvents() {
+      const events = loadEvents();
+      eventList.innerHTML = "";
+      events.forEach(e => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <div><strong>${e.date} / ${e.time}</strong></div>
+          <div>${e.title}</div>
+          <div style="margin-top:8px;">参加者: ${e.members.join(", ")}</div>
+        `;
+        eventList.appendChild(div);
+      });
+    }
 
-/* ==========================
-   ④ 予約表示（空データは出さない）
-   ========================== */
-function render() {
-  const list = document.getElementById("reservationList");
-  list.innerHTML = "";
+    function addEvent() {
+      const date = document.getElementById("new-date").value;
+      const time = document.getElementById("new-time").value;
+      const title = document.getElementById("new-title").value;
 
-  const dates = Object.keys(reservations).sort();
+      if (!date || !title) return alert("日付とタイトルは必須です");
 
-  dates.forEach(date => {
-    const data = reservations[date];
-    if (!data.members.length) return;
+      const jpDate = date.replace(/-/g, "/");
 
-    const box = document.createElement("div");
-    box.className = "branch";
+      const events = loadEvents();
+      events.push({ date: jpDate, time, title, members: [] });
+      saveEvents(events);
+      renderEvents();
+      alert("追加しました");
+    }
 
-    const title = `${date} – ${data.title}`;
-    box.innerHTML = `<strong>${title}</strong>`;
-
-    const p = document.createElement("div");
-    p.className = "participants";
-    p.innerHTML = data.members.join(", ");
-    box.appendChild(p);
-
-    // 参加するボタン
-    const join = document.createElement("div");
-    join.className = "join-btn";
-    join.textContent = "ここに参加する";
-    join.onclick = () => {
-      if (!username) return alert("先に名前を入力してください");
-      if (!data.members.includes(username)) {
-        data.members.push(username);
-        saveReservations();
-        render();
-      } else {
-        alert("すでに参加しています");
-      }
-    };
-
-    box.appendChild(join);
-    list.appendChild(box);
-  });
-}
-
-/* ==========================
-   ⑤ 新規予約の追加
-   ========================== */
-function addReservation() {
-  const date = document.getElementById("newDate").value;
-  const title = document.getElementById("newTitle").value.trim();
-
-  if (!date || !title) return alert("日付とタイトルは必須です");
-
-  if (!reservations[date]) {
-    reservations[date] = { title: title, members: [] };
-  } else {
-    reservations[date].title = title;
-  }
-
-  saveReservations();
-  render();
-
-  document.getElementById("newDate").value = "";
-  document.getElementById("newTitle").value = "";
-}
-
-// 初期表示
-render();
-</script>
-
+    renderEvents();
+  </script>
 </body>
 </html>
