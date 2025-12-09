@@ -1,3 +1,375 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>飯行く日</title>
+
+<!-- Instagram external browser force -->
+<script>
+(function(){
+  const ua = navigator.userAgent || "";
+  if(/Instagram/i.test(ua)){
+    try{ window.open(location.href, "_blank"); }catch(e){}
+  }
+})();
+</script>
+
+<style>
+  :root{
+    --bg:#fbfbfb;
+    --card:#ffffff;
+    --muted:#8f8f8f;
+    --accent:#111;
+    --radius:12px;
+    --gap:16px;
+    --max-width:820px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    font-family:"Noto Sans JP", -apple-system, system-ui, "Helvetica Neue", Arial;
+    padding:26px 14px;
+    display:flex;justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:100%;max-width:var(--max-width);}
+
+  .topbar{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:26px;
+  }
+  .page-title{
+    font-size:28px;font-weight:600;
+  }
+  .edit-name-btn{
+    border:1px solid #e6e6e6;background:#fff;
+    padding:8px 12px;border-radius:10px;font-size:14px;cursor:pointer;
+  }
+
+  /* headings */
+  .section-title{
+    font-size:18px;font-weight:700;
+    margin:30px 0 10px;
+    padding-left:4px;
+  }
+
+  /* card */
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:0 6px 24px rgba(20,24,28,0.06);
+    margin-bottom:var(--gap);
+  }
+
+  label.muted{font-size:13px;color:var(--muted);display:block;margin-bottom:6px;}
+  input[type="date"], select, button{
+    width:100%;padding:10px 12px;font-size:15px;
+    border-radius:10px;border:1px solid #eaeaea;background:#fff;
+  }
+  button.primary{
+    background:var(--accent);color:#fff;border:0;font-weight:700;
+    margin-top:14px;cursor:pointer;
+  }
+
+  /* branch item */
+  .branch{
+    border:1px solid #f1f1f1;
+    border-radius:12px;padding:14px;
+    margin-bottom:12px;background:#fff;
+  }
+  .branch-date{
+    font-size:14px;color:#555;margin-bottom:6px;
+  }
+  .branch-title{
+    font-size:16px;font-weight:700;display:flex;align-items:center;gap:6px;
+    margin-bottom:6px;
+  }
+  .title-edit{cursor:pointer;}
+  .branch-members{
+    font-size:14px;color:#333;margin-bottom:10px;
+    word-break:break-word;
+  }
+  .branch-actions{
+    display:flex;gap:10px;
+  }
+  .branch-actions button{
+    flex:1;padding:8px 0;border-radius:8px;font-size:14px;
+    border:1px solid #ddd;background:#fff;cursor:pointer;
+  }
+
+  /* name modal */
+  #nameModal{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.35);z-index:999;
+    visibility:hidden;opacity:0;transition:opacity .25s;
+  }
+  #nameModal .inner{
+    background:#fff;padding:22px;border-radius:12px;min-width:300px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="page-title">飯行く日</div>
+    <button class="edit-name-btn" id="editNameBtn">表示名を修正</button>
+  </div>
+
+  <!-- 新しく追加 -->
+  <div class="section-title">新しく追加</div>
+  <div class="card">
+    <label class="muted">日付</label>
+    <input type="date" id="newDate" min="2025-12-29" max="2026-01-04" />
+
+    <label class="muted" style="margin-top:14px">時間帯</label>
+    <select id="newTime">
+      <option value="昼">昼</option>
+      <option value="夜">夜</option>
+    </select>
+
+    <label class="muted" style="margin-top:14px">場所</label>
+    <select id="newPlace">
+      <option value="橋本">橋本</option>
+      <option value="大阪">大阪</option>
+      <option value="京都">京都</option>
+      <option value="どこでも">どこでも</option>
+    </select>
+
+    <button class="primary" id="createBtn">新規作成して参加</button>
+  </div>
+
+  <!-- 他の約束 -->
+  <div class="section-title">他の約束</div>
+  <div id="branchList"></div>
+</div>
+
+<!-- name modal -->
+<div id="nameModal">
+  <div class="inner">
+    <div style="font-weight:700;font-size:16px;margin-bottom:8px">表示名を入力</div>
+    <div class="muted" style="margin-bottom:12px">今後自動で使われます（後で修正可）</div>
+    <input id="nameInput" type="text" maxlength="20" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:10px;" />
+    <button class="primary" id="saveNameBtn" style="margin-top:14px">保存</button>
+  </div>
+</div>
+
+<script>
+/*****************************************************************
+ LocalStorage keys
+*****************************************************************/
+const STORAGE_KEY = "meal_branches";
+const NAME_KEY = "meal_username";
+
+/*****************************************************************
+ PRESET BRANCHES
+*****************************************************************/
+function genId(){ return "b_" + Math.random().toString(36).slice(2,10); }
+
+const PRESETS = [
+  { id: genId(), date:"2025/12/29", time:"夜", place:"大阪", title:"大学忘年会", members:["Hirao","トキツ","藤木"] },
+  { id: genId(), date:"2026/01/03", time:"夜", place:"京都", title:"中学同窓会", members:["Ogawa","かずき","MOE","Ami","yuina"] }
+];
+
+/*****************************************************************
+ Read / Write
+*****************************************************************/
+function loadBranches(){
+  try{
+    const s = localStorage.getItem(STORAGE_KEY);
+    return s ? JSON.parse(s) : null;
+  }catch(e){ return null; }
+}
+function saveBranches(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+function getName(){ return localStorage.getItem(NAME_KEY); }
+function setName(v){ localStorage.setItem(NAME_KEY, v); }
+
+/*****************************************************************
+ Init data
+*****************************************************************/
+let branches = loadBranches();
+if(!branches){ branches = PRESETS.slice(); saveBranches(branches); }
+
+/*****************************************************************
+ DOM refs
+*****************************************************************/
+const branchListEl = document.getElementById("branchList");
+const newDateEl = document.getElementById("newDate");
+const newTimeEl = document.getElementById("newTime");
+const newPlaceEl = document.getElementById("newPlace");
+const createBtn = document.getElementById("createBtn");
+const editNameBtn = document.getElementById("editNameBtn");
+
+const nameModal = document.getElementById("nameModal");
+const nameInput = document.getElementById("nameInput");
+const saveNameBtn = document.getElementById("saveNameBtn");
+
+/*****************************************************************
+ Name modal flow
+*****************************************************************/
+function openNameModal(){
+  nameModal.style.visibility = "visible";
+  nameModal.style.opacity = "1";
+}
+function closeNameModal(){
+  nameModal.style.opacity = "0";
+  setTimeout(()=> nameModal.style.visibility="hidden", 250);
+}
+
+(function initName(){
+  const n = getName();
+  if(!n){ openNameModal(); }
+})();
+
+saveNameBtn.onclick = ()=>{
+  const v = (nameInput.value || "").trim();
+  if(!v){ alert("名前を入力してください");return; }
+  setName(v);
+  closeNameModal();
+  render();
+};
+
+editNameBtn.onclick = ()=>{
+  const cur = getName() || "";
+  const nv = prompt("表示名を修正（最大20文字）", cur);
+  if(nv===null) return;
+  const t = nv.trim().slice(0,20);
+  if(!t){ alert("空にはできません"); return; }
+  setName(t);
+  render();
+};
+
+/*****************************************************************
+ Format date
+*****************************************************************/
+function toShort(d){
+  // input: YYYY/MM/DD → output: YY/MM/DD
+  const [y,m,dd] = d.split("/");
+  return y.slice(2) + "/" + m + "/" + dd;
+}
+
+/*****************************************************************
+ Sort branches
+*****************************************************************/
+function sortBranches(list){
+  return list.slice().sort((a,b)=>{
+    if(a.date === b.date){
+      if(a.time === b.time) return 0;
+      return a.time === "昼" ? -1 : 1;
+    }
+    return a.date < b.date ? -1 : 1;
+  });
+}
+
+/*****************************************************************
+ Render list
+*****************************************************************/
+function render(){
+  branchListEl.innerHTML = "";
+  const name = getName();
+  const list = sortBranches(branches);
+
+  list.forEach(br=>{
+    const wrap = document.createElement("div");
+    wrap.className = "branch";
+
+    const dateEl = document.createElement("div");
+    dateEl.className = "branch-date";
+    dateEl.textContent = `${toShort(br.date)} / ${br.time} / ${br.place}`;
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "branch-title";
+    const t = document.createElement("span");
+    t.textContent = br.title;
+    const pencil = document.createElement("span");
+    pencil.textContent = "📝";
+    pencil.className = "title-edit";
+    pencil.onclick = ()=>{
+      const nt = prompt("タイトルを編集", br.title);
+      if(nt===null) return;
+      const v = nt.trim();
+      if(!v) return;
+      br.title = v;
+      saveBranches(branches);
+      render();
+    };
+    titleRow.appendChild(t);
+    titleRow.appendChild(pencil);
+
+    const mem = document.createElement("div");
+    mem.className = "branch-members";
+    mem.textContent = br.members.join(", ");
+
+    const acts = document.createElement("div");
+    acts.className = "branch-actions";
+
+    const joinBtn = document.createElement("button");
+    joinBtn.textContent = "参加";
+    const leaveBtn = document.createElement("button");
+    leaveBtn.textContent = "取り消し";
+
+    joinBtn.onclick = ()=>{
+      if(!name){ openNameModal(); return; }
+      if(!br.members.includes(name)){
+        br.members.push(name);
+        saveBranches(branches);
+        render();
+      }
+    };
+
+    leaveBtn.onclick = ()=>{
+      if(!name) return;
+      br.members = br.members.filter(x=> x!==name);
+      if(br.members.length===0){
+        branches = branches.filter(x=> x.id!==br.id);
+      }
+      saveBranches(branches);
+      render();
+    };
+
+    acts.appendChild(joinBtn);
+    acts.appendChild(leaveBtn);
+
+    wrap.appendChild(dateEl);
+    wrap.appendChild(titleRow);
+    wrap.appendChild(mem);
+    wrap.appendChild(acts);
+
+    branchListEl.appendChild(wrap);
+  });
+}
+render();
+
+/*****************************************************************
+ Create branch
+*****************************************************************/
+createBtn.onclick = ()=>{
+  const name = getName();
+  if(!name){ openNameModal(); return; }
+
+  const d = newDateEl.value;
+  if(!d){ alert("日付を選んでください"); return; }
+  const t = newTimeEl.value;
+  const p = newPlaceEl.value;
+
+  const d2 = d.replace(/-/g,"/");
+
+  const br = {
+    id: genId(),
+    date: d2,
+    time: t,
+    place: p,
+    title: "(タイトル未設定)",
+    members: [name]
+  };
+  branches.push(br);
+  saveBranches(branches);
+  render();
+};
+</script>
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,170 +378,287 @@
   <title>飯行く日</title>
   <style>
     body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      background: #fafafa;
+      color: #111;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial;
-      background: #f7f7f7;
-      color: #111;
-      text-align: center;
     }
+
+    /* 全体センター */
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px 18px 80px;
+    }
+
     h1 {
-      font-size: 2rem;
+      text-align: center;
+      font-size: 28px;
       font-weight: 600;
-      margin: 20px 0 10px;
+      margin-bottom: 32px;
       letter-spacing: 0.03em;
     }
-    .top-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    .top-buttons button {
-      padding: 10px 14px;
-      font-size: 0.9rem;
-      border: none;
-      border-radius: 8px;
-      background: #fff;
-      box-shadow: 0 0 0 1px #ddd;
-    }
+
+    /* 見出し */
     .section-title {
-      font-size: 1.3rem;
+      font-size: 20px;
       font-weight: 600;
-      margin: 24px 0 12px;
+      margin: 40px 0 16px;
     }
-    .card {
-      width: 92%;
-      margin: 0 auto 20px;
-      padding: 16px;
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      text-align: left;
+
+    /* 新しく追加フォーム */
+    .add-box, .list-box {
+      margin-bottom: 40px;
     }
-    select, button {
-      font-size: 1rem;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
+
+    select, button, input[type="text"] {
       width: 100%;
-      margin-top: 10px;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: white;
     }
-    .branch-title-line {
+
+    button.primary {
+      background: #111;
+      color: white;
+      font-weight: 600;
+    }
+
+    /* 予約ブランチ */
+    .branch {
+      background: #fff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .branch-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 6px;
+      font-size: 16px;
+      font-weight: 600;
     }
-    .edit-btn {
-      font-size: 1.1rem;
-      background: transparent;
-      border: none;
-      cursor: pointer;
+
+    .branch-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .participants {
-      margin-top: 6px;
-      font-size: 0.95rem;
-      line-height: 1.4;
+
+    .branch-members {
+      font-size: 14px;
+      color: #444;
+      margin-bottom: 10px;
     }
-    .join-btn {
-      margin-top: 10px;
-      background: #111;
-      color: #fff;
+
+    .branch-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .branch-actions button {
+      flex: 1;
+      font-size: 14px;
+      padding: 10px;
+    }
+
+    /* 固定ボタン */
+    .edit-name-btn {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      background: #eee;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
 
+<div class="container">
   <h1>飯行く日</h1>
-  <div class="top-buttons">
-    <button onclick="location.href='name.html'">表示名修正</button>
-  </div>
+  <a href="#" class="edit-name-btn" onclick="goNameEdit()">表示名修正</a>
 
-  <div class="section-title">新しく追加</div>
-  <div class="card">
-    <label>日付</label>
-    <select id="newDate"></select>
+  <!-- 新しく追加 -->
+  <div class="add-box">
+    <div class="section-title">新しく追加</div>
 
-    <label style="margin-top:14px; display:block;">時間帯</label>
-    <select id="newTime">
+    <select id="new-date"></select>
+    <select id="new-time">
       <option value="昼">昼</option>
       <option value="夜">夜</option>
     </select>
+    <select id="new-place">
+      <option value="橋本">橋本</option>
+      <option value="大阪">大阪</option>
+      <option value="京都">京都</option>
+      <option value="どこでも">どこでも</option>
+    </select>
 
-    <button onclick="addBranch()" style="margin-top:16px;">追加</button>
+    <button class="primary" onclick="addBranch()">追加する</button>
   </div>
 
-  <div class="section-title">他の約束</div>
-  <div id="branchList"></div>
+  <!-- 予約一覧 -->
+  <div class="list-box">
+    <div class="section-title">他の約束</div>
+    <div id="branch-list"></div>
+  </div>
+</div>
 
 <script>
-  const dateRange = ["25/12/29","25/12/30","25/12/31","26/01/01","26/01/02","26/01/03","26/01/04"];
-  const newDateSel = document.getElementById("newDate");
-  newDateSel.innerHTML = dateRange.map(d => `<option value="${d}">${d}</option>`).join("");
+/*********************************************************
+ 初回：表示名入力ページへ
+*********************************************************/
+if (!localStorage.getItem('displayName')) {
+  window.location.href = 'name.html';
+}
 
-  let displayName = localStorage.getItem("displayName") || "";
-  let branches = JSON.parse(localStorage.getItem("branches") || "[]");
+/*********************************************************
+ 初期データ
+*********************************************************/
+let branches = JSON.parse(localStorage.getItem('branches') || '[]');
 
-  if (!localStorage.getItem("initialLoaded")) {
-    branches.push(
-      { id: crypto.randomUUID(), date: "25/12/29", time:"夜", title:"大学忘年会", participants:["Hirao","トキツ","藤木"] },
-      { id: crypto.randomUUID(), date: "26/01/03", time:"夜", title:"中学同窓会", participants:["Ogawa","かずき","MOE","Ami","yuina"] }
-    );
-    localStorage.setItem("branches", JSON.stringify(branches));
-    localStorage.setItem("initialLoaded", "1");
+// 既存イベント追加
+function loadPreset() {
+  const preset = [
+    { id: crypto.randomUUID(), date: '25/12/29', time: '夜', place: '橋本', title: '大学忘年会', members: ['Hirao','トキツ','藤木'] },
+    { id: crypto.randomUUID(), date: '26/01/03', time: '夜', place: '京都', title: '中学同窓会', members: ['Ogawa','かずき','MOE','Ami','yuina'] }
+  ];
+  if (!localStorage.getItem('presetLoaded')) {
+    branches = branches.concat(preset);
+    localStorage.setItem('presetLoaded','yes');
+    localStorage.setItem('branches', JSON.stringify(branches));
   }
+}
+loadPreset();
 
-  function render() {
-    const list = document.getElementById("branchList");
-    list.innerHTML = branches.map(b => `
-      <div class='card'>
-        <div class='branch-title-line'>
-          <div><strong>${b.date} / ${b.time}</strong></div>
-          <button class='edit-btn' onclick="editTitle('${b.id}')">✏️</button>
+/*********************************************************
+ 新しく追加：日付生成（25/12/29〜26/01/04）
+*********************************************************/
+function loadDateOptions() {
+  const sel = document.getElementById('new-date');
+  const start = new Date(2025,11,29);
+  const end   = new Date(2026,0,4);
+  let d = start;
+  while (d <= end) {
+    const y = String(d.getFullYear()).slice(2);
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const da = String(d.getDate()).padStart(2,'0');
+    const opt = document.createElement('option');
+    opt.value = `${y}/${m}/${da}`;
+    opt.textContent = `${y}/${m}/${da}`;
+    sel.appendChild(opt);
+    d.setDate(d.getDate()+1);
+  }
+}
+loadDateOptions();
+
+/*********************************************************
+ ブランチ描画
+*********************************************************/
+function render() {
+  const list = document.getElementById('branch-list');
+  list.innerHTML = '';
+
+  branches
+    .sort((a,b)=> (a.date > b.date ? 1 : -1))
+    .forEach(b => {
+      const div = document.createElement('div');
+      div.className = 'branch';
+
+      div.innerHTML = `
+        <div class="branch-header">
+          <div class="branch-title">${b.date} / ${b.time} / ${b.place}　${b.title} 📝</div>
         </div>
-        <div class='participants'>${b.title}<br>${b.participants.join('、')}</div>
-        <button class='join-btn' onclick="joinBranch('${b.id}')">参加</button>
-        <button style='margin-top:8px;' onclick="cancelJoin('${b.id}')">取り消し</button>
-      </div>
-    `).join("");
-  }
+        <div class="branch-members">${b.members.join(', ')}</div>
+        <div class="branch-actions">
+          <button onclick="joinBranch('${b.id}')">参加</button>
+          <button onclick="cancelBranch('${b.id}')">取消</button>
+          <button onclick="editTitle('${b.id}')">📝</button>
+        </div>
+      `;
 
-  function addBranch() {
-    const d = newDateSel.value;
-    const t = document.getElementById("newTime").value;
-    branches.push({ id: crypto.randomUUID(), date:d, time:t, title:"", participants:[] });
-    localStorage.setItem("branches", JSON.stringify(branches));
-    render();
-  }
+      list.appendChild(div);
+    });
+}
+render();
 
-  function joinBranch(id) {
-    if (!displayName) { alert("先に表示名を入力してください"); return; }
-    const b = branches.find(x => x.id === id);
-    if (!b.participants.includes(displayName)) b.participants.push(displayName);
-    localStorage.setItem("branches", JSON.stringify(branches));
-    render();
-  }
+/*********************************************************
+ 新規追加
+*********************************************************/
+function addBranch() {
+  const date = document.getElementById('new-date').value;
+  const time = document.getElementById('new-time').value;
+  const place = document.getElementById('new-place').value;
 
-  function cancelJoin(id) {
-    const b = branches.find(x => x.id === id);
-    b.participants = b.participants.filter(p => p !== displayName);
-    if (b.participants.length === 0 && b.title === "") {
-      branches = branches.filter(x => x.id !== id);
-    }
-    localStorage.setItem("branches", JSON.stringify(branches));
-    render();
-  }
-
-  function editTitle(id) {
-    const b = branches.find(x => x.id === id);
-    const t = prompt("タイトルを入力", b.title);
-    if (t !== null) b.title = t.trim();
-    localStorage.setItem("branches", JSON.stringify(branches));
-    render();
-  }
-
+  const newB = {
+    id: crypto.randomUUID(),
+    date, time, place,
+    title: '',
+    members: []
+  };
+  branches.push(newB);
+  localStorage.setItem('branches', JSON.stringify(branches));
   render();
+}
+
+/*********************************************************
+ 参加
+*********************************************************/
+function joinBranch(id) {
+  const name = localStorage.getItem('displayName');
+  const b = branches.find(x=>x.id===id);
+  if (!b.members.includes(name)) b.members.push(name);
+  localStorage.setItem('branches', JSON.stringify(branches));
+  render();
+}
+
+/*********************************************************
+ 取消
+*********************************************************/
+function cancelBranch(id) {
+  const name = localStorage.getItem('displayName');
+  const b = branches.find(x=>x.id===id);
+
+  b.members = b.members.filter(m=>m!==name);
+
+  // 自分だけならブランチ削除
+  if (b.members.length === 0) {
+    branches = branches.filter(x=>x.id!==id);
+  }
+
+  localStorage.setItem('branches', JSON.stringify(branches));
+  render();
+}
+
+/*********************************************************
+ タイトル編集
+*********************************************************/
+function editTitle(id) {
+  const b = branches.find(x=>x.id===id);
+  const t = prompt('タイトルを編集', b.title || '');
+  if (t !== null) {
+    b.title = t;
+    localStorage.setItem('branches', JSON.stringify(branches));
+    render();
+  }
+}
+
+/*********************************************************
+ 表示名修正ページへ
+*********************************************************/
+function goNameEdit() {
+  window.location.href = 'name_edit.html';
+}
 </script>
 
 </body>
