@@ -1,153 +1,478 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>飯行く日</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f5f5f5;
-    }
-    header {
-      padding: 20px;
-      font-size: 28px;
-      font-weight: bold;
-      background: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-    .section-title {
-      margin: 20px;
-      padding: 10px 15px;
-      background: #fff;
-      border-radius: 8px;
-      font-size: 20px;
-      font-weight: bold;
-      border: 1px solid #ddd;
-    }
-    .container {
-      padding: 0 20px 40px;
-    }
-    .card {
-      background: #fff;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-    button {
-      margin-top: 15px;
-      padding: 10px 15px;
-      font-size: 16px;
-      border-radius: 6px;
-      border: none;
-      background: #333;
-      color: #fff;
-      cursor: pointer;
-    }
-    #name-edit-btn {
-      position: fixed;
-      top: 15px;
-      right: 15px;
-      padding: 8px 12px;
-      background: #444;
-      color: #fff;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>飯行く日</title>
+
+<!-- Instagram in-app browser -> try to open in external browser (best-effort) -->
+<script>
+  (function(){
+    try{
+      const ua = navigator.userAgent || "";
+      if (/Instagram/i.test(ua)) {
+        // try open new tab (some in-app browsers will hand to external)
+        window.open(location.href, "_blank");
+      }
+    }catch(e){}
+  })();
+</script>
+
+<style>
+  :root{
+    --bg:#fbfbfb;
+    --card:#fff;
+    --muted:#9aa0a6;
+    --accent:#111;
+    --radius:12px;
+    --gap:14px;
+    --max-width:820px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--bg);
+    font-family: "Noto Sans JP", -apple-system, system-ui, "Helvetica Neue", Arial;
+    color:#111;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+  .wrap{width:100%;max-width:var(--max-width);}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .page-title{
+    font-size:28px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:.02em;
+  }
+  .edit-name-btn{
+    border:1px solid #e6e6e6;
+    background:#fff;
+    padding:8px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:14px;
+  }
+
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow:0 8px 30px rgba(20,24,28,0.06);
+    margin-bottom:var(--gap);
+    transition:transform .32s ease,opacity .32s ease;
+  }
+  .card-title{
+    font-size:15px;font-weight:700;margin:0 0 8px 0;padding:10px;border-radius:10px;background:#ffffff;border:1px solid #f4f4f4;
+    display:inline-block;
+  }
+  .muted{color:var(--muted);font-size:13px}
+  .field{margin-top:10px}
+  input[type="date"], select, button, input[type="text"]{
+    width:100%;
+    padding:10px 12px;border-radius:10px;border:1px solid #eaeaea;font-size:15px;background:#fff;
+  }
+  button.primary{
+    background:var(--accent);color:#fff;border:0;padding:10px;border-radius:10px;font-weight:700;
+    cursor:pointer;margin-top:12px;
+  }
+  button.small{
+    background:transparent;border:1px solid #ddd;color:#111;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:13px;
+  }
+
+  .reserve-item{
+    display:flex;justify-content:space-between;align-items:flex-start;padding:12px;border-radius:10px;border:1px solid #f3f3f3;margin-top:10px;background:#fff;
+  }
+  .reserve-left{max-width:68%}
+  .reserve-title{font-weight:700}
+  .reserve-meta{font-size:13px;color:var(--muted);margin-top:6px}
+  .participants{margin-top:8px;color:#333;font-size:14px}
+  .slot-actions{display:flex;gap:8px;align-items:center}
+
+  .my-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid #f0f0f0;border-radius:8px;margin-top:8px}
+
+  /* pencil small */
+  .pencil-btn{background:transparent;border:0;font-size:16px;cursor:pointer;padding:6px;border-radius:6px}
+  .pencil-btn:hover{background:#f5f5f5}
+
+  /* modal */
+  .modal-mask{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.36);z-index:999;opacity:0;visibility:hidden;transition:opacity .2s}
+  .modal{background:#fff;padding:18px;border-radius:12px;min-width:300px;max-width:92%}
+  .modal.show{opacity:1;visibility:visible}
+
+  @media (max-width:560px){
+    .reserve-left{max-width:60%}
+    .page-title{font-size:22px}
+  }
+</style>
 </head>
 <body>
-  <header>飯行く日</header>
-  <button id="name-edit-btn" onclick="location.href='name_edit.html'">名前を修正</button>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="page-title">飯行く日</div>
+      <button class="edit-name-btn" id="editNameBtn">表示名を修正</button>
+    </div>
 
-  <div class="section-title">新しく追加</div>
-  <div class="container">
+    <!-- 新しく追加（白枠） -->
+    <div class="card" id="newCard">
+      <div class="card-title">新しく追加</div>
+      <div style="margin-top:8px" class="muted">日付と時間を選んで「新規作成して参加」。タイトルは後で鉛筆で編集できます。</div>
+
+      <div class="field">
+        <label class="muted">日付</label>
+        <input type="date" id="newDate" min="2025-12-29" max="2026-01-04" />
+      </div>
+
+      <div class="field">
+        <label class="muted">時間帯</label>
+        <select id="newTime">
+          <option value="昼">昼</option>
+          <option value="夜">夜</option>
+        </select>
+      </div>
+
+      <div style="margin-top:12px">
+        <button class="primary" id="createAndJoinBtn">新規作成して参加</button>
+      </div>
+    </div>
+
+    <!-- 他の約束（白枠） -->
+    <div class="card" id="listCard">
+      <div class="card-title">他の約束</div>
+      <div id="reserveList" class="muted">読み込み中...</div>
+    </div>
+
+    <!-- 自分の参加一覧 -->
     <div class="card">
-      <label>日付</label>
-      <input type="date" id="new-date" min="2025-12-29" max="2026-01-04" />
-
-      <label>時間帯</label>
-      <select id="new-time">
-        <option value="昼">昼</option>
-        <option value="夜">夜</option>
-      </select>
-
-      <label>タイトル</label>
-      <input id="new-title" placeholder="例: ご飯 / 飲み / 集まり" />
-
-      <button onclick="addEvent()">追加</button>
+      <div class="card-title">あなたの参加一覧</div>
+      <div id="myList" class="muted">参加している枠はありません</div>
+      <div style="margin-top:8px" class="muted">※ここから取り消すと、ブランチが空になれば自動で削除されます</div>
     </div>
   </div>
 
-  <div class="section-title">他の約束</div>
-  <div class="container" id="event-list"></div>
+  <!-- 初回/修正 名前モーダル -->
+  <div id="nameModal" class="modal-mask">
+    <div class="modal">
+      <div style="font-weight:700;font-size:16px;margin-bottom:6px">表示名を入力してください</div>
+      <div class="muted" style="margin-bottom:10px">今後自動で使われます（後で修正可）。最大20文字・日本語OK。</div>
+      <input id="nameInput" type="text" maxlength="20" placeholder="例: 山田太郎 / Yama23 / たろう" />
+      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+        <button id="saveNameBtn" class="primary">保存</button>
+        <button id="skipBtn" class="small">あとで</button>
+      </div>
+    </div>
+  </div>
 
-  <script>
-    const eventList = document.getElementById("event-list");
+  <!-- title edit modal -->
+  <div id="titleModal" class="modal-mask">
+    <div class="modal">
+      <div style="font-weight:700;margin-bottom:8px">タイトルを編集</div>
+      <div class="muted" style="margin-bottom:8px">この枠のタイトルを編集します（誰でも編集可・表示は即時反映）。</div>
+      <input id="titleInput" type="text" maxlength="40" placeholder="例: 大学忘年会" />
+      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+        <button id="saveTitleBtn" class="primary">保存</button>
+        <button id="cancelTitleBtn" class="small">キャンセル</button>
+      </div>
+    </div>
+  </div>
 
-    const initialEvents = [
-      { date: "2025/12/29", time: "夜", title: "大学忘年会", members: ["Hirao", "トキツ", "藤木"] },
-      { date: "2026/01/03", time: "夜", title: "中学同窓会", members: ["Ogawa", "かずき", "MOE", "Ami", "yuina"] }
-    ];
+<script>
+/* -----------------------
+  Data model (localStorage)
+  - KEY_BRANCHES: 'meeting_app_branches'  (array of branches)
+     branch = { id, date: 'YY/MM/DD', time: '昼'|'夜', title: string, members: [name,...] }
+  - KEY_NAME: 'meeting_app_username' (string)
+-------------------------*/
+const KEY_BRANCHES = 'meeting_app_branches';
+const KEY_NAME = 'meeting_app_username';
 
-    function loadEvents() {
-      const saved = localStorage.getItem("events");
-      return saved ? JSON.parse(saved) : initialEvents;
+// utilities
+function genId(){ return 'b_'+Math.random().toString(36).slice(2,9); }
+function readBranches(){ try{ const s = localStorage.getItem(KEY_BRANCHES); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+function writeBranches(b){ localStorage.setItem(KEY_BRANCHES, JSON.stringify(b)); }
+function getName(){ return localStorage.getItem(KEY_NAME); }
+function setName(n){ localStorage.setItem(KEY_NAME, n); }
+function formatDisplayDateFromInput(val){ // val is yyyy-mm-dd -> return 'YY/MM/DD'
+  if(!val) return '';
+  const p = val.split('-');
+  if(p.length!==3) return val;
+  const yy = p[0].slice(2);
+  return `${yy}/${p[1]}/${p[2]}`;
+}
+
+// presets (use 2-digit year format in strings per request)
+const PRESETS = [
+  { id: genId(), date: '25/12/29', time: '夜', title: '大学忘年会', members: ['Hirao','トキツ','藤木'] },
+  { id: genId(), date: '26/01/03', time: '夜', title: '中学同窓会', members: ['Ogawa','かずき','MOE','Ami','yuina'] }
+];
+
+// init storage if empty
+let branches = readBranches();
+if(!branches){
+  branches = PRESETS.slice();
+  writeBranches(branches);
+}
+
+// DOM refs
+const reserveListEl = document.getElementById('reserveList');
+const myListEl = document.getElementById('myList');
+const newDateEl = document.getElementById('newDate');
+const newTimeEl = document.getElementById('newTime');
+const createAndJoinBtn = document.getElementById('createAndJoinBtn');
+const editNameBtn = document.getElementById('editNameBtn');
+
+const nameModalMask = document.getElementById('nameModal');
+const nameInput = document.getElementById('nameInput');
+const saveNameBtn = document.getElementById('saveNameBtn');
+const skipBtn = document.getElementById('skipBtn');
+
+const titleModalMask = document.getElementById('titleModal');
+const titleInput = document.getElementById('titleInput');
+const saveTitleBtn = document.getElementById('saveTitleBtn');
+const cancelTitleBtn = document.getElementById('cancelTitleBtn');
+
+let editingBranchId = null;
+
+// render list: only show branches with at least one member
+function renderList(){
+  const active = branches.filter(b=>Array.isArray(b.members) && b.members.length>0);
+  if(active.length===0){
+    reserveListEl.innerHTML = '<div class="muted">現在、他の約束はありません</div>';
+    return;
+  }
+
+  // sort by date (YY/MM/DD) then time:昼 first
+  active.sort((a,b)=>{
+    if(a.date!==b.date) return a.date < b.date ? -1 : 1;
+    if(a.time===b.time) return 0;
+    return a.time==='昼' ? -1 : 1;
+  });
+
+  reserveListEl.innerHTML = '';
+  const me = getName();
+
+  active.forEach(b=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'reserve-item';
+
+    const left = document.createElement('div');
+    left.className = 'reserve-left';
+    left.innerHTML = `<div class="reserve-title">${b.date} / ${b.time}</div>
+                      <div class="reserve-meta">${b.title ? escapeHtml(b.title) : '<span class="muted">（タイトル未設定）</span>'}</div>
+                      <div class="participants">${b.members.join('、')}</div>`;
+
+    // small pencil for title edit
+    const pencil = document.createElement('button');
+    pencil.className = 'pencil-btn';
+    pencil.title = 'タイトルを編集';
+    pencil.innerText = '✏️';
+    pencil.onclick = (e)=>{
+      e.stopPropagation();
+      openTitleEditor(b.id);
+    };
+
+    const right = document.createElement('div');
+    right.className = 'slot-actions';
+
+    const amIMember = me ? b.members.includes(me) : false;
+
+    if(amIMember){
+      const status = document.createElement('div');
+      status.textContent = '参加中';
+      status.style.fontWeight = '700';
+      status.style.marginRight = '8px';
+      right.appendChild(status);
+
+      const leaveBtn = document.createElement('button');
+      leaveBtn.className = 'small';
+      leaveBtn.textContent = '取り消す';
+      leaveBtn.onclick = ()=>{ if(confirm('この参加を取り消しますか？')) leaveBranch(b.id); };
+      right.appendChild(leaveBtn);
+    } else {
+      const joinBtn = document.createElement('button');
+      joinBtn.className = 'primary';
+      joinBtn.textContent = 'ここに参加する';
+      joinBtn.onclick = ()=> joinBranch(b.id);
+      right.appendChild(joinBtn);
     }
 
-    function saveEvents(events) {
-      localStorage.setItem("events", JSON.stringify(events));
-    }
+    // attach pencil small (visible but not intrusive)
+    right.appendChild(pencil);
 
-    function renderEvents() {
-      const events = loadEvents();
-      eventList.innerHTML = "";
-      events.forEach(e => {
-        const div = document.createElement("div");
-        div.className = "card";
-        div.innerHTML = `
-          <div><strong>${e.date} / ${e.time}</strong></div>
-          <div>${e.title}</div>
-          <div style="margin-top:8px;">参加者: ${e.members.join(", ")}</div>
-        `;
-        eventList.appendChild(div);
-      });
-    }
+    wrap.appendChild(left);
+    wrap.appendChild(right);
+    reserveListEl.appendChild(wrap);
+  });
+}
 
-    function addEvent() {
-      const date = document.getElementById("new-date").value;
-      const time = document.getElementById("new-time").value;
-      const title = document.getElementById("new-title").value;
+// join existing branch
+function joinBranch(branchId){
+  const name = getName();
+  if(!name){ showNameModal(); return; }
 
-      if (!date || !title) return alert("日付とタイトルは必須です");
+  const b = branches.find(x=>x.id===branchId);
+  if(!b){ alert('枠が見つかりません'); renderList(); return; }
 
-      const jpDate = date.replace(/-/g, "/");
+  // check conflict: same date+time
+  const conflict = branches.some(x=>x.date===b.date && x.time===b.time && x.members.includes(name));
+  if(conflict){ alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); return; }
 
-      const events = loadEvents();
-      events.push({ date: jpDate, time, title, members: [] });
-      saveEvents(events);
-      renderEvents();
-      alert("追加しました");
-    }
+  if(!b.members.includes(name)) b.members.push(name);
+  writeBranches(branches);
+  renderList();
+  renderMyList();
+}
 
-    renderEvents();
-  </script>
+// create new branch + join
+createAndJoinBtn.addEventListener('click', ()=>{
+  const dateVal = newDateEl.value;
+  const timeVal = newTimeEl.value;
+  if(!dateVal){ alert('日付を選んでください'); return; }
+  const name = getName();
+  if(!name){ showNameModal(); return; }
+
+  const dateStr = formatDisplayDateFromInput(dateVal); // 'YY/MM/DD'
+
+  // conflict check: user cannot already be in any branch same date+time
+  const conflict = branches.some(b=>b.date===dateStr && b.time===timeVal && b.members.includes(name));
+  if(conflict){ alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); return; }
+
+  // new branch
+  const newB = { id: genId(), date: dateStr, time: timeVal, title:'', members:[name] };
+  branches.push(newB);
+  writeBranches(branches);
+  // clear inputs
+  newDateEl.value = '';
+  newTimeEl.value = '昼';
+  renderList();
+  renderMyList();
+  alert('新しい枠を作成して参加しました');
+});
+
+// leave branch (remove name); if branch empty -> delete branch
+function leaveBranch(branchId){
+  const name = getName();
+  if(!name){ alert('名前が未設定です'); showNameModal(); return; }
+  const idx = branches.findIndex(x=>x.id===branchId);
+  if(idx===-1){ alert('既に削除されています'); renderList(); return; }
+  branches[idx].members = branches[idx].members.filter(m=>m!==name);
+  if(branches[idx].members.length===0){
+    branches.splice(idx,1);
+  }
+  writeBranches(branches);
+  renderList();
+  renderMyList();
+}
+
+// render my participation list
+function renderMyList(){
+  const name = getName();
+  if(!name){ myListEl.innerHTML = '<div class="muted">表示名が未設定です。右上の「表示名を修正」から設定してください</div>'; return; }
+  const mine = branches.filter(b=>b.members.includes(name));
+  if(mine.length===0){ myListEl.innerHTML = '<div class="muted">現在参加している枠はありません</div>'; return; }
+
+  myListEl.innerHTML = '';
+  mine.forEach(b=>{
+    const el = document.createElement('div');
+    el.className = 'my-item';
+    el.innerHTML = `<div><strong>${b.date} / ${b.time}</strong><div class="muted" style="margin-top:6px">${b.title ? escapeHtml(b.title) : '（タイトル未設定）'}</div></div>`;
+    const btn = document.createElement('button');
+    btn.className = 'small';
+    btn.textContent = '取り消す';
+    btn.onclick = ()=> { if(confirm('この参加を取り消しますか？')) leaveBranch(b.id); };
+    el.appendChild(btn);
+    myListEl.appendChild(el);
+  });
+}
+
+/* ========== title editor (✏️) ========== */
+function openTitleEditor(branchId){
+  const b = branches.find(x=>x.id===branchId);
+  if(!b) return;
+  editingBranchId = branchId;
+  titleInput.value = b.title || '';
+  titleModalMask.classList.add('show');
+  titleModalMask.style.opacity = '1';
+  titleModalMask.style.visibility = 'visible';
+}
+saveTitleBtn.addEventListener('click', ()=>{
+  if(!editingBranchId) return;
+  const b = branches.find(x=>x.id===editingBranchId);
+  if(!b) return;
+  b.title = (titleInput.value||'').trim();
+  writeBranches(branches);
+  titleModalMask.style.opacity = '0';
+  titleModalMask.style.visibility = 'hidden';
+  editingBranchId = null;
+  renderList();
+  renderMyList();
+});
+cancelTitleBtn.addEventListener('click', ()=>{
+  titleModalMask.style.opacity = '0';
+  titleModalMask.style.visibility = 'hidden';
+  editingBranchId = null;
+});
+
+/* ========== name modal ========== */
+function showNameModal(){
+  nameModalMask.classList.add('show');
+  nameModalMask.style.opacity = '1';
+  nameModalMask.style.visibility = 'visible';
+  nameInput.focus();
+}
+saveNameBtn.addEventListener('click', ()=>{
+  const v = (nameInput.value||'').trim().slice(0,20);
+  if(!v){ alert('表示名を入力してください'); return; }
+  setName(v);
+  nameModalMask.style.opacity = '0';
+  nameModalMask.style.visibility = 'hidden';
+  renderMyList();
+  renderList();
+});
+skipBtn.addEventListener('click', ()=>{
+  nameModalMask.style.opacity = '0';
+  nameModalMask.style.visibility = 'hidden';
+});
+
+// edit name button (prompt)
+document.getElementById('editNameBtn').addEventListener('click', ()=>{
+  const cur = getName() || '';
+  const newName = prompt('表示名を修正してください（日本語可・最大20文字）', cur);
+  if(newName===null) return;
+  const trimmed = (newName||'').trim().slice(0,20);
+  if(!trimmed){ alert('空にできません'); return; }
+  setName(trimmed);
+  alert('表示名を更新しました');
+  renderMyList();
+  renderList();
+});
+
+/* ========== helpers ========== */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
+
+// initial render
+renderList();
+renderMyList();
+
+// make sure modals hidden initially (but will show if name missing)
+(function initModals(){
+  // name modal show if missing
+  if(!getName()){
+    showNameModal();
+  } else {
+    nameInput.value = getName();
+  }
+  // title modal hidden
+  titleModalMask.style.opacity = '0';
+  titleModalMask.style.visibility = 'hidden';
+  nameModalMask.style.opacity = '0';
+  nameModalMask.style.visibility = 'hidden';
+})();
+
+</script>
 </body>
 </html>
