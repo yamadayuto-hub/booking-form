@@ -65,7 +65,7 @@
     <button class="primary" id="createBtn" style="margin-top:12px">新規作成</button>
   </div>
 
-  <div class="section-title">進行中</div>
+  <div class="section-title">他の約束</div>
   <div class="card" id="reserveList">
     <div id="loading" style="color:var(--muted)">読み込み中...</div>
   </div>
@@ -75,8 +75,8 @@
 
 <script>
 /* ================== Supabase 設定（ここをあなたの値に置き換える） ================== */
-const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";    // <- 置換
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYmZjcGF4c3JnZWJ4anRrdmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODY4ODAsImV4cCI6MjA4MDc2Mjg4MH0.8Mp6MotCT5z2rTd0iIWhXz3aV696ijBEkYk9tVIYpgw";                  // <- 置換
+const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";    // <- 置換
+const SUPABASE_ANON_KEY = "YOUR-ANON-KEY";                  // <- 置換
 /* ============================================================================== */
 
 let useSupabase = SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes("YOUR");
@@ -168,7 +168,7 @@ function renderBranches(list){
 
   reserveListWrap.innerHTML = '';
   if(list.length===0){
-    reserveListWrap.innerHTML = '<div style="color:var(--muted)">現在、進行中はありません</div>';
+    reserveListWrap.innerHTML = '<div style="color:var(--muted)">現在、他の約束はありません</div>';
     return;
   }
 
@@ -307,8 +307,8 @@ async function bootstrap(){
     let local = readLocal();
     if(local.length===0){
       local = [
-        { id: uid(), date:'25/12/29', time:'夜', place:’京都’, title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
-        { id: uid(), date:'26/01/03', time:'夜', place:’橋本’, title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
+        { id: uid(), date:'25/12/29', time:'夜', place:'橋本', title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
+        { id: uid(), date:'26/01/03', time:'夜', place:'京都', title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
       ];
       writeLocal(local);
     }
@@ -320,8 +320,8 @@ async function bootstrap(){
       // insert presets if empty
       try{
         await supabase.from('branches').insert([
-          { date:'25/12/29', time:'夜', place:’京都’, title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
-          { date:'26/01/03', time:'夜', place:’橋本’, title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
+          { date:'25/12/29', time:'夜', place:'橋本', title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
+          { date:'26/01/03', time:'夜', place:'京都', title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
         ]);
       }catch(e){ console.warn('preset insert issue', e); }
     }
