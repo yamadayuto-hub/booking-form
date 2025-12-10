@@ -1,74 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>表示名設定</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body { font-family:"Inter",sans-serif; background:#f6f6f6; margin:0; }
+.wrap { max-width:400px; margin:0 auto; padding:20px; }
+.title { font-size:22px; font-weight:600; margin-bottom:20px; }
+.card { background:#fff; padding:16px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+button {
+  margin-top:12px; width:100%; padding:10px;
+  border:none; border-radius:8px; background:#007aff; color:#fff; font-size:15px;
+}
+label { font-size:14px; }
+input {
+  margin-top:6px; padding:10px; width:100%; font-size:16px;
+  border:1px solid #ccc; border-radius:8px;
+}
+.notif {
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  background:#333; color:#fff; padding:10px 18px;
+  border-radius:8px; opacity:0; pointer-events:none; transition:opacity .4s;
+}
+</style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="title">表示名設定</div>
+
+  <div class="card">
+    <label>表示名</label>
+    <input id="nameInput" placeholder="例：Yuto">
+    <button id="saveBtn">保存</button>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
 <script>
-function queryParam(name){
-  const p = new URLSearchParams(location.search);
-  return p.get(name);
+/* Supabase */
+const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_PUBLIC_ANON_KEY";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* Notify */
+function notify(msg){
+  localStorage.setItem("notify_msg", msg);
+  location.href = "index.html";
 }
 
-(async function(){
-  const existing = localStorage.getItem('meeting_app_username') || '';
-  const editMode = queryParam('edit') === '1';
-  const input = document.getElementById('displayName');
+/* Init input */
+const oldName = localStorage.getItem("username") || "";
+document.getElementById("nameInput").value = oldName;
 
-  if(existing && !editMode){
-    location.replace('index.html');
-    return;
-  }
-  if(existing && editMode){
-    input.value = existing;
-  }
-})();
+/* Save */
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
+  const newName = document.getElementById("nameInput").value.trim();
+  if(!newName){ alert("名前を入力してください"); return; }
 
-// new save handler: replace old->new in both Supabase and local fallback
-document.getElementById('saveBtn').addEventListener('click', async ()=>{
-  const newName = (document.getElementById('displayName').value || '').trim().slice(0,20);
-  if(!newName){ alert('表示名を入力してください'); return; }
+  // ローカル保存
+  localStorage.setItem("username", newName);
 
-  const oldName = localStorage.getItem('meeting_app_username') || '';
-
-  // save immediately locally
-  localStorage.setItem('meeting_app_username', newName);
-
-  // if old exists & different, run replacement
-  if(oldName && oldName !== newName){
-    // local fallback replace
-    try{
-      const local = JSON.parse(localStorage.getItem('meeting_app_branches')||'[]');
-      let mutated = false;
-      const replaced = local.map(b=>{
-        if(Array.isArray(b.members)){
-          const changed = b.members.map(m => m === oldName ? newName : m);
-          if(JSON.stringify(changed) !== JSON.stringify(b.members)){ mutated = true; b.members = changed; }
+  // Supabase 全置換
+  if(oldName && newName && oldName !== newName){
+    const { data, error } = await supabaseClient.from("branches").select("*");
+    if(!error && data.length){
+      for(const b of data){
+        if(b.members.includes(oldName)){
+          const newMembers = b.members.map(m=> m===oldName ? newName : m);
+          await supabaseClient.from("branches").update({ members:newMembers }).eq("id", b.id);
         }
-        return b;
-      });
-      if(mutated){
-        localStorage.setItem('meeting_app_branches', JSON.stringify(replaced));
-      }
-    }catch(e){ console.warn('local replace err', e); }
-
-    // Supabase replace: fetch all rows, update rows where members include oldName
-    if(window.supabase){
-      try{
-        // fetch only id + members to minimize payload
-        const { data, error } = await supabase.from('branches').select('id,members');
-        if(error) throw error;
-        if(Array.isArray(data)){
-          for(const row of data){
-            if(Array.isArray(row.members) && row.members.includes(oldName)){
-              const newMembers = row.members.map(m => m === oldName ? newName : m);
-              await supabase.from('branches').update({ members: newMembers }).eq('id', row.id);
-            }
-          }
-        }
-      }catch(e){
-        console.error('supabase replace error', e);
-        // don't block user — but inform
-        alert('表示名の置換（サーバ側）で一部エラーがありました。後で確認してください。');
       }
     }
   }
 
-  // after saving & replacing, go back to index
-  location.href = 'index.html';
+  notify("表示名を変更しました");
 });
 </script>
+</body>
+</html>
