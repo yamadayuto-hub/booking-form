@@ -371,7 +371,7 @@ async function bootstrap(){
     let local = readLocal();
     if(local.length===0){
       local = [
-        { id: uid(), date:'25/12/29', time:'夜', place:'京都', title:'大学忘年会', members:['Hirao','トキツ','藤木','その他15人程度'] },
+        { id: uid(), date:'25/12/29', time:'夜', place:'京都', title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
         { id: uid(), date:'26/01/03', time:'夜', place:'橋本', title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
       ];
       writeLocal(local);
@@ -383,7 +383,7 @@ async function bootstrap(){
     if(!data || data.length===0){
       try{
         await supabase.from('branches').insert([
-          { date:'25/12/29', time:'夜', place:'京都', title:'大学忘年会', members:['Hirao','トキツ','藤木','その他15人程度'] },
+          { date:'25/12/29', time:'夜', place:'京都', title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
           { date:'26/01/03', time:'夜', place:'橋本', title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
         ]);
       }catch(e){ console.warn('preset insert issue', e); }
