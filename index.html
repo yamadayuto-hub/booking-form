@@ -27,22 +27,15 @@ body{
 .section-title{font-size:18px;font-weight:700;margin:28px 0 12px;padding-left:20px}
 .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,0.04);margin-bottom:18px}
 
-/* ===== カレンダー（1行固定・スクロールなし） ===== */
-.calendar{
-  display:flex;
-  gap:6px;
-}
+/* ===== カレンダー（1行固定） ===== */
+.calendar{display:flex;gap:6px}
 .cal-cell{
-  flex:1;
-  min-width:0; /* ← 超重要：これでスマホでも7日収まる */
+  flex:1;min-width:0;
   background:#fff;border-radius:10px;min-height:92px;padding:6px;
   box-shadow:0 1px 3px rgba(0,0,0,.05);cursor:pointer
 }
-.cal-cell.selected{
-  outline:2px solid #111;
-}
+.cal-cell.selected{outline:2px solid #111}
 .cal-date{font-size:12px;font-weight:700}
-.cal-week{font-size:11px;color:#888;margin-left:4px}
 .cal-item{
   font-size:11px;background:#111;color:#fff;border-radius:6px;
   padding:2px 6px;margin-top:4px
@@ -53,7 +46,6 @@ body{
   display:grid;
   grid-template-columns:1fr 1fr 1fr auto;
   gap:8px;
-  align-items:center;
 }
 .primary{
   background:#111;color:#fff;border:none;border-radius:10px;
@@ -111,23 +103,34 @@ body{
 
 <script>
 const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYmZjcGF4c3JnZWJ4anRrdmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODY4ODAsImV4cCI6MjA4MDc2Mjg4MH0.8Mp6MotCT5z2rTd0iIWhXz3aV696ijBEkYk9tVIYpgw";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const calendarEl = document.getElementById('calendar');
 const reserveList = document.getElementById('reserveList');
-const weekJP=['日','月','火','水','木','金','土'];
+const newDateSel = document.getElementById('newDate');
 
 let allBranches=[];
-let selectedDate = null;
+let selectedDate=null;
 
+/* ===== 新規作成 日付（12/29〜1/4） ===== */
+function populateNewDates(){
+  newDateSel.innerHTML='';
+  for(let d=new Date(2025,11,29);d<=new Date(2026,0,4);d.setDate(d.getDate()+1)){
+    const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+    const v=`${String(y).slice(2)}/${m}/${dd}`;
+    const o=document.createElement('option');
+    o.value=v;o.textContent=v;
+    newDateSel.appendChild(o);
+  }
+}
+populateNewDates();
+
+/* ===== カレンダー ===== */
 function renderCalendar(list){
   calendarEl.innerHTML='';
   const map={};
-  list.forEach(b=>{
-    if(!map[b.date]) map[b.date]=[];
-    map[b.date].push(b);
-  });
+  list.forEach(b=>{if(!map[b.date])map[b.date]=[];map[b.date].push(b);});
 
   for(let d=new Date(2025,11,29);d<=new Date(2026,0,4);d.setDate(d.getDate()+1)){
     const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
@@ -135,45 +138,79 @@ function renderCalendar(list){
 
     const cell=document.createElement('div');
     cell.className='cal-cell'+(selectedDate===key?' selected':'');
-    cell.innerHTML=`<div class="cal-date">${m}/${dd}<span class="cal-week">(${weekJP[d.getDay()]})</span></div>`;
+    cell.innerHTML=`<div class="cal-date">${m}/${dd}</div>`;
     (map[key]||[]).forEach(b=>cell.innerHTML+=`<div class="cal-item">${b.place}/${b.time}</div>`);
 
     cell.onclick=()=>{
-      if(selectedDate===key){
-        selectedDate=null;
-        renderBranches(allBranches);
-      }else{
-        selectedDate=key;
-        renderBranches(map[key]||[]);
-      }
+      selectedDate = selectedDate===key ? null : key;
+      renderBranches(selectedDate ? map[key]||[] : allBranches);
       renderCalendar(allBranches);
     };
     calendarEl.appendChild(cell);
   }
 }
 
+/* ===== 進行中 ===== */
 function renderBranches(list){
   reserveList.innerHTML='';
-  if(list.length===0){
-    reserveList.textContent='予定なし';
-    return;
-  }
+  if(list.length===0){reserveList.textContent='予定なし';return;}
   list.forEach(b=>{
     const el=document.createElement('div');
     el.className='branch';
     el.innerHTML=`
       <div class="branch-date">${b.date} / ${b.time} / ${b.place}</div>
-      <div class="branch-title">${b.title||'（タイトル未設定）'}</div>
+      <div class="branch-title">
+        <span>${b.title||'（タイトル未設定）'}</span>
+        <span class="pencil" style="cursor:pointer">📝</span>
+      </div>
       <div class="branch-members">${b.members.join('、')}</div>
       <div class="branch-actions">
         <button onclick="join('${b.id}')">参加</button>
         <button onclick="leave('${b.id}')">取り消し</button>
       </div>
     `;
+    el.querySelector('.pencil').onclick=async()=>{
+      const t=prompt('タイトル編集',b.title||'');
+      if(t===null)return;
+      await sb.from('branches').update({title:t}).eq('id',b.id);
+      location.reload();
+    };
     reserveList.appendChild(el);
   });
 }
 
+/* ===== 新規作成 ===== */
+document.getElementById('createBtn').onclick=async()=>{
+  const name=localStorage.getItem('meeting_app_username');
+  if(!name){location.href='name.html';return;}
+  await sb.from('branches').insert([{
+    date:newDateSel.value,
+    time:newTime.value,
+    place:newPlace.value,
+    title:'',
+    members:[name]
+  }]);
+  location.reload();
+};
+
+/* ===== 参加 / 取り消し ===== */
+async function join(id){
+  const name=localStorage.getItem('meeting_app_username');
+  const {data}=await sb.from('branches').select('members').eq('id',id).single();
+  if(data.members.includes(name))return;
+  await sb.from('branches').update({members:[...data.members,name]}).eq('id',id);
+  location.reload();
+}
+async function leave(id){
+  const name=localStorage.getItem('meeting_app_username');
+  const {data}=await sb.from('branches').select('members').eq('id',id).single();
+  const m=data.members.filter(x=>x!==name);
+  if(m.length===0) await sb.from('branches').delete().eq('id',id);
+  else await sb.from('branches').update({members:m}).eq('id',id);
+  location.reload();
+}
+
+/* ===== 起動 ===== */
 async function bootstrap(){
   const {data}=await sb.from('branches').select('*').order('date');
   allBranches=data||[];
