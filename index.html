@@ -8,9 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <style>
-:root{
-  --bg:#fbfbfb;--card:#fff;--muted:#8f8f8f;--accent:#111;
-}
+:root{--bg:#fbfbfb;--card:#fff;--accent:#111;--muted:#888}
 *{box-sizing:border-box}
 body{
   margin:0;background:var(--bg);
@@ -38,12 +36,8 @@ body{
   box-shadow:0 1px 3px rgba(0,0,0,.05);
   cursor:pointer;
 }
-.cal-date{
-  font-size:12px;font-weight:700;margin-bottom:6px;
-}
-.cal-week{
-  font-size:11px;color:#888;margin-left:4px;
-}
+.cal-date{font-size:12px;font-weight:700;margin-bottom:6px}
+.cal-week{font-size:11px;color:#888;margin-left:4px}
 .cal-item{
   font-size:11px;
   background:#111;color:#fff;
@@ -51,7 +45,7 @@ body{
   margin-bottom:4px;
 }
 
-/* section */
+/* list */
 .section-title{font-size:18px;font-weight:700;margin:24px 0 12px}
 .card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,.04)}
 .branch{border-bottom:1px solid #eee;padding:10px 0}
@@ -66,7 +60,7 @@ body{
   transform:translateX(-50%);
   background:#111;color:#fff;
   padding:10px 14px;border-radius:10px;
-  opacity:0
+  opacity:0;transition:.3s
 }
 </style>
 </head>
@@ -91,16 +85,20 @@ body{
 <div class="notif" id="notif"></div>
 
 <script>
+/* ===== Supabase ===== */
 const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYmZjcGF4c3JnZWJ4anRrdmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODY4ODAsImV4cCI6MjA4MDc2Mjg4MH0.8Mp6MotCT5z2rTd0iIWhXz3aV696ijBEkYk9tVIYpgw";
-const supabase = window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY =
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYmZjcGF4c3JnZWJ4anRrdmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODY4ODAsImV4cCI6MjA4MDc2Mjg4MH0.8Mp6MotCT5z2rTd0iIWhXz3aV696ijBEkYk9tVIYpgw";
 
+const supabase = window.supabase =
+  supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ===== state ===== */
 const calendarEl = document.getElementById('calendar');
 const reserveList = document.getElementById('reserveList');
 const notif = document.getElementById('notif');
-
-const weekJP = ['日','月','火','水','木','金','土'];
 let allBranches = [];
+const weekJP = ['日','月','火','水','木','金','土'];
 
 function showNotif(msg){
   notif.textContent = msg;
@@ -108,13 +106,14 @@ function showNotif(msg){
   setTimeout(()=>notif.style.opacity=0,2000);
 }
 
+/* ===== calendar ===== */
 function renderCalendar(branches){
   calendarEl.innerHTML = '';
 
   const start = new Date(2025,11,29);
   const end   = new Date(2026,0,4);
-
   const map = {};
+
   branches.forEach(b=>{
     if(!map[b.date]) map[b.date]=[];
     map[b.date].push(b);
@@ -122,10 +121,9 @@ function renderCalendar(branches){
 
   let d = new Date(start);
   while(d <= end){
-    const yyyy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,'0');
     const dd = String(d.getDate()).padStart(2,'0');
-    const key = `${String(yyyy).slice(2)}/${mm}/${dd}`;
+    const key = `${String(d.getFullYear()).slice(2)}/${mm}/${dd}`;
 
     const cell = document.createElement('div');
     cell.className = 'cal-cell';
@@ -142,14 +140,14 @@ function renderCalendar(branches){
 
     cell.onclick = ()=> renderBranches(map[key]||[]);
     calendarEl.appendChild(cell);
-
     d.setDate(d.getDate()+1);
   }
 }
 
+/* ===== list ===== */
 function renderBranches(list){
-  if(list.length===0){
-    reserveList.innerHTML = '予定なし';
+  if(!list || list.length===0){
+    reserveList.textContent = '予定なし';
     return;
   }
   reserveList.innerHTML = '';
@@ -168,10 +166,11 @@ function renderBranches(list){
   });
 }
 
+/* ===== join / leave ===== */
 window.join = async(id)=>{
   const name = localStorage.getItem('meeting_app_username');
   const b = allBranches.find(x=>x.id===id);
-  if(b.members.includes(name)) return;
+  if(!name || b.members.includes(name)) return;
   b.members.push(name);
   await supabase.from('branches').update({members:b.members}).eq('id',id);
   showNotif('参加しました');
@@ -191,11 +190,12 @@ window.leave = async(id)=>{
   bootstrap();
 };
 
+/* ===== init ===== */
 async function bootstrap(){
-  const { data } = await supabase.from('branches').select('*');
+  const { data } = await supabase.from('branches').select('*').order('date');
   allBranches = data || [];
   renderCalendar(allBranches);
-  renderBranches(allBranches);
+  renderBranches(allBranches); // ← 初期表示で全件
 }
 bootstrap();
 </script>
