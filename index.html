@@ -5,404 +5,199 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>年末年始予定</title>
 
-<!-- Supabase client -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
 <style>
-  :root{
-    --bg:#fbfbfb;--card:#fff;--muted:#8f8f8f;--accent:#111;--radius:12px;--max-width:780px;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font-family:"Noto Sans JP", -apple-system, system-ui, "Helvetica Neue", Arial;color:#111;display:flex;justify-content:center;padding:18px 12px 80px}
-  .wrap{width:100%;max-width:var(--max-width)}
-  /* header: relative so title can be exactly centered */
-  .top{position:relative;height:56px;margin-bottom:12px}
-  .title{font-size:28px;font-weight:600;position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;}
-  .edit-link{position:absolute;right:0;top:8px;color:#000;text-decoration:underline;font-size:14px;cursor:pointer;white-space:nowrap}
-  .section-title{font-size:18px;font-weight:700;margin:28px 0 12px;padding-left:20px}
-  .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,0.04);margin-bottom:18px}
-  label.small{display:block;color:var(--muted);font-size:13px;margin-bottom:8px}
-  select, button, input[type="text"], input[type="date"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #eaeaea;font-size:15px;background:#fff}
-  button.primary{background:var(--accent);color:#fff;border:0;padding:10px;border-radius:10px;font-weight:700;cursor:pointer}
-  /* branch */
-  #reserveList{padding:10px}
-  .branch{background:#fff;border-radius:12px;padding:8px 10px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
-  .branch-date{font-size:14px;color:#444;margin-bottom:6px}
-  .branch-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-bottom:6px}
-  .branch-members{font-size:14px;color:#333;margin-bottom:8px;word-break:break-word}
-  .branch-actions{display:flex;gap:10px}
-  .branch-actions button{flex:1;padding:9px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-size:14px}
-  .notif{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:#111;color:#fff;padding:10px 14px;border-radius:10px;opacity:0;pointer-events:none}
-  @media (max-width:560px){
-    .title{font-size:22px}
-    .branch-actions button{padding:10px;font-size:13px}
-  }
+:root{
+  --bg:#fbfbfb;--card:#fff;--muted:#8f8f8f;--accent:#111;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);
+  font-family:"Noto Sans JP",-apple-system,system-ui;
+  display:flex;justify-content:center;
+  padding:16px 12px 80px
+}
+.wrap{width:100%;max-width:780px}
+
+/* header */
+.top{position:relative;height:56px}
+.title{font-size:26px;font-weight:600;position:absolute;left:50%;transform:translateX(-50%)}
+.edit-link{position:absolute;right:0;top:8px;font-size:14px;text-decoration:underline;cursor:pointer}
+
+/* calendar */
+.calendar-wrap{margin:12px 0 20px}
+.calendar{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+}
+.cal-cell{
+  background:#fff;border-radius:10px;
+  min-height:96px;padding:6px;
+  box-shadow:0 1px 3px rgba(0,0,0,.05);
+  cursor:pointer;
+}
+.cal-date{
+  font-size:12px;font-weight:700;margin-bottom:6px;
+}
+.cal-week{
+  font-size:11px;color:#888;margin-left:4px;
+}
+.cal-item{
+  font-size:11px;
+  background:#111;color:#fff;
+  border-radius:6px;padding:2px 6px;
+  margin-bottom:4px;
+}
+
+/* section */
+.section-title{font-size:18px;font-weight:700;margin:24px 0 12px}
+.card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,.04)}
+.branch{border-bottom:1px solid #eee;padding:10px 0}
+.branch:last-child{border-bottom:none}
+.branch-date{font-size:14px;color:#555}
+.branch-members{font-size:14px;margin:6px 0}
+.branch-actions{display:flex;gap:10px}
+.branch-actions button{flex:1;padding:8px;border-radius:8px;border:1px solid #ddd;background:#fff}
+
+.notif{
+  position:fixed;bottom:20px;left:50%;
+  transform:translateX(-50%);
+  background:#111;color:#fff;
+  padding:10px 14px;border-radius:10px;
+  opacity:0
+}
 </style>
 </head>
-<body>
 
+<body>
 <div class="wrap">
+
   <div class="top">
     <div class="title">年末年始予定</div>
-    <a class="edit-link" id="editNameBtn">表示名修正</a>
+    <div class="edit-link" onclick="location.href='name.html?edit=1'">表示名修正</div>
   </div>
 
-  <div class="section-title">新規作成</div>
-  <div class="card" id="newCard">
-    <label class="small" style="margin-top:10px">日付</label>
-    <select id="newDate" aria-label="日付"></select>
-
-    <label class="small" style="margin-top:10px">時間帯</label>
-    <select id="newTime"><option value="昼">昼</option><option value="夜">夜</option></select>
-
-    <label class="small" style="margin-top:10px">場所</label>
-    <select id="newPlace">
-      <option value="橋本">橋本</option>
-      <option value="大阪">大阪</option>
-      <option value="京都">京都</option>
-      <option value="どこでも">どこでも</option>
-    </select>
-
-    <button class="primary" id="createBtn" style="margin-top:12px">新規作成</button>
+  <!-- カレンダー -->
+  <div class="calendar-wrap">
+    <div class="calendar" id="calendar"></div>
   </div>
 
   <div class="section-title">進行中</div>
-  <div class="card" id="reserveList">
-    <div id="loading" style="color:var(--muted)">読み込み中...</div>
-  </div>
+  <div class="card" id="reserveList">読み込み中...</div>
 </div>
 
 <div class="notif" id="notif"></div>
 
 <script>
-/* ================== Supabase 設定 ================== */
-/* あなたが既に公開している値をそのまま使っています。必要なら差し替えてください。 */
 const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnYmZjcGF4c3JnZWJ4anRrdmRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxODY4ODAsImV4cCI6MjA4MDc2Mjg4MH0.8Mp6MotCT5z2rTd0iIWhXz3aV696ijBEkYk9tVIYpgw";
+const SUPABASE_ANON_KEY = "YOUR_KEY";
+const supabase = window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let useSupabase = SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes("YOUR");
-if(useSupabase){
-  window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} else {
-  console.warn("Supabase 未設定: localStorage フォールバックで動作します（同期されません）");
+const calendarEl = document.getElementById('calendar');
+const reserveList = document.getElementById('reserveList');
+const notif = document.getElementById('notif');
+
+const weekJP = ['日','月','火','水','木','金','土'];
+let allBranches = [];
+
+function showNotif(msg){
+  notif.textContent = msg;
+  notif.style.opacity = 1;
+  setTimeout(()=>notif.style.opacity=0,2000);
 }
 
-/* ---------- utilities ---------- */
-function uid(){ return 'b_' + Math.random().toString(36).slice(2,9); }
-function showLocalNotif(msg){
-  const n = document.getElementById('notif');
-  n.textContent = msg;
-  n.style.transition = 'none';
-  n.style.opacity = '1';
-  setTimeout(()=>{ n.style.transition='opacity .5s'; n.style.opacity='0'; }, 2000);
-}
+function renderCalendar(branches){
+  calendarEl.innerHTML = '';
 
-/* reload-notify: set a key then reload; on load show it */
-function setNotifyThenReload(msg){
-  localStorage.setItem('notifyAfterReload', msg);
-  location.reload();
-}
-
-/* call this on DOMContentLoaded to show any pending notify */
-function showPendingNotify(){
-  const msg = localStorage.getItem('notifyAfterReload');
-  if(msg){
-    // small delay so UI is ready
-    setTimeout(()=>{ showLocalNotif(msg); localStorage.removeItem('notifyAfterReload'); }, 200);
-  }
-}
-
-/* ---------- DOM refs ---------- */
-const newDateSel = document.getElementById('newDate');
-const newTimeSel = document.getElementById('newTime');
-const newPlaceSel = document.getElementById('newPlace');
-const createBtn = document.getElementById('createBtn');
-const reserveListWrap = document.getElementById('reserveList');
-const loadingEl = document.getElementById('loading');
-const editNameBtn = document.getElementById('editNameBtn');
-
-/* ---------- name handling ---------- */
-function getName(){ return localStorage.getItem('meeting_app_username') || ''; }
-function ensureName(){ const n = getName(); if(!n){ alert('表示名が未設定です。表示名入力ページに移動します'); location.href='name.html'; return false } return true; }
-editNameBtn.addEventListener('click', ()=> { location.href='name.html?edit=1'; });
-
-/* ---------- populate date options (select) ---------- */
-function populateDates(){
   const start = new Date(2025,11,29);
-  const end = new Date(2026,0,4);
+  const end   = new Date(2026,0,4);
+
+  const map = {};
+  branches.forEach(b=>{
+    if(!map[b.date]) map[b.date]=[];
+    map[b.date].push(b);
+  });
+
   let d = new Date(start);
-  newDateSel.innerHTML = '';
   while(d <= end){
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth()+1).padStart(2,'0');
     const dd = String(d.getDate()).padStart(2,'0');
-    const iso = `${yyyy}-${mm}-${dd}`; // value (iso)
-    const display = `${String(yyyy).slice(2)}/${mm}/${dd}`; // display like 25/12/29
-    const o = document.createElement('option'); o.value=iso; o.textContent=display;
-    newDateSel.appendChild(o);
+    const key = `${String(yyyy).slice(2)}/${mm}/${dd}`;
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell';
+    cell.innerHTML = `
+      <div class="cal-date">
+        ${mm}/${dd}
+        <span class="cal-week">(${weekJP[d.getDay()]})</span>
+      </div>
+    `;
+
+    (map[key]||[]).forEach(b=>{
+      cell.innerHTML += `<div class="cal-item">${b.place} / ${b.time}</div>`;
+    });
+
+    cell.onclick = ()=> renderBranches(map[key]||[]);
+    calendarEl.appendChild(cell);
+
     d.setDate(d.getDate()+1);
   }
 }
-populateDates();
-
-/* ---------- helpers for local fallback ---------- */
-function readLocal(){ try{ return JSON.parse(localStorage.getItem('meeting_app_branches')||'[]'); }catch(e){return[]} }
-function writeLocal(list){ localStorage.setItem('meeting_app_branches', JSON.stringify(list)); }
-
-/* ---------- supabase helpers ---------- */
-async function fetchBranchesSupabase(){
-  loadingEl.textContent = '読み込み中...';
-  try{
-    // fetch all rows
-    const { data, error } = await supabase.from('branches').select('*').order('date', {ascending:true}).order('time',{ascending:true});
-    if(error) throw error;
-    return data || [];
-  }catch(e){ console.error(e); return []; } finally { loadingEl.textContent=''; }
-}
-
-/* ---------- render ---------- */
-function normalizeDateIsoToYYMMDD(iso){
-  if(!iso) return '';
-  if(typeof iso !== 'string') return iso;
-  const p = iso.split('-'); if(p.length!==3) return iso;
-  return p[0].slice(2)+'/'+p[1]+'/'+p[2];
-}
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 function renderBranches(list){
-  if(!Array.isArray(list)) list = [];
-  // sort by date/time properly
-  list.sort((a,b)=>{
-    const da = (a.date && a.date.indexOf('-')>=0 ? a.date.replace(/-/g,'/') : a.date || '');
-    const db = (b.date && b.date.indexOf('-')>=0 ? b.date.replace(/-/g,'/') : b.date || '');
-    if(da !== db) return da < db ? -1 : 1;
-    if((a.time||'') === (b.time||'')) return 0;
-    return (a.time||'') === '昼' ? -1 : 1;
-  });
-
-  reserveListWrap.innerHTML = '';
   if(list.length===0){
-    reserveListWrap.innerHTML = '<div style="color:var(--muted)">現在、他の約束はありません</div>';
+    reserveList.innerHTML = '予定なし';
     return;
   }
-
+  reserveList.innerHTML = '';
   list.forEach(b=>{
-    const el = document.createElement('div'); el.className='branch';
-    const dateDisplay = (b.date && b.date.indexOf('-')>=0) ? normalizeDateIsoToYYMMDD(b.date) : (b.date||'');
+    const el = document.createElement('div');
+    el.className = 'branch';
     el.innerHTML = `
-      <div class="branch-date">${escapeHtml(dateDisplay)} / ${escapeHtml(b.time||'')} / ${escapeHtml(b.place||'')}</div>
-      <div class="branch-title"><span>${escapeHtml(b.title || '（タイトル未設定）')}</span><span class="pencil" title="タイトル編集">📝</span></div>
-      <div class="branch-members">${Array.isArray(b.members)? b.members.join('、') : ''}</div>
+      <div class="branch-date">${b.date} / ${b.time} / ${b.place}</div>
+      <div class="branch-members">${b.members.join('、')}</div>
+      <div class="branch-actions">
+        <button onclick="join('${b.id}')">参加</button>
+        <button onclick="leave('${b.id}')">取消</button>
+      </div>
     `;
-
-    const actions = document.createElement('div'); actions.className='branch-actions';
-    const btnJoin = document.createElement('button'); btnJoin.textContent='参加';
-    const btnLeave = document.createElement('button'); btnLeave.textContent='取り消し';
-    actions.appendChild(btnJoin); actions.appendChild(btnLeave);
-    el.appendChild(actions);
-
-    // title edit handler
-    el.querySelector('.pencil').addEventListener('click', async (e)=>{
-      e.stopPropagation();
-      const newTitle = prompt('タイトルを編集（誰でも編集可能）', b.title || '');
-      if(newTitle === null) return;
-      const trimmed = String(newTitle).trim();
-      if(useSupabase){
-        try{
-          await supabase.from('branches').update({ title: trimmed }).eq('id', b.id);
-          setNotifyThenReload('タイトルを更新しました');
-        }catch(e){ console.error(e); alert('タイトル更新に失敗しました'); }
-      } else {
-        const local = readLocal(); const idx = local.findIndex(x=>x.id===b.id);
-        if(idx>=0){ local[idx].title = trimmed; writeLocal(local); setNotifyThenReload('タイトルを変更しました'); }
-      }
-    });
-
-    btnJoin.addEventListener('click', ()=> handleJoinClick(b));
-    btnLeave.addEventListener('click', ()=> handleLeaveClick(b));
-
-    reserveListWrap.appendChild(el);
+    reserveList.appendChild(el);
   });
 }
 
-/* ---------- join/leave logic (with checks) ---------- */
-async function handleJoinClick(branch){
-  const name = getName(); if(!name) return ensureName();
+window.join = async(id)=>{
+  const name = localStorage.getItem('meeting_app_username');
+  const b = allBranches.find(x=>x.id===id);
+  if(b.members.includes(name)) return;
+  b.members.push(name);
+  await supabase.from('branches').update({members:b.members}).eq('id',id);
+  showNotif('参加しました');
+  bootstrap();
+};
 
-  try{
-    if(useSupabase){
-      const dateToCheck = branch.date && branch.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(branch.date) : (branch.date||'');
-      const { data: conflicts, error: confErr } = await supabase
-        .from('branches')
-        .select('id')
-        .eq('date', dateToCheck)
-        .eq('time', branch.time)
-        .contains('members',[name]);
-      if(confErr) throw confErr;
-      if(conflicts && conflicts.length>0){
-        alert('同じ日・時間帯には既に参加済みです。先に取り消してください。');
-        return;
-      }
-
-      // fetch current members, append if absent, write back
-      const { data } = await supabase.from('branches').select('members').eq('id', branch.id).maybeSingle();
-      let members = (data && data.members) ? data.members.slice() : [];
-      if(!members.includes(name)) members.push(name);
-      await supabase.from('branches').update({ members }).eq('id', branch.id);
-
-      setNotifyThenReload('参加しました');
-    } else {
-      const local = readLocal();
-      const already = local.some(x=>{
-        const dx = x.date && x.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(x.date) : x.date;
-        const bx = branch.date && branch.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(branch.date) : branch.date;
-        return dx===bx && x.time===branch.time && x.members && x.members.includes(name);
-      });
-      if(already){ alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); return; }
-
-      const idx = local.findIndex(x=>x.id===branch.id);
-      if(idx>=0 && !local[idx].members.includes(name)){
-        local[idx].members.push(name);
-        writeLocal(local);
-        setNotifyThenReload('参加しました');
-      }
-    }
-  }catch(e){
-    console.error(e);
-    alert('参加処理でエラーが発生しました');
+window.leave = async(id)=>{
+  const name = localStorage.getItem('meeting_app_username');
+  const b = allBranches.find(x=>x.id===id);
+  b.members = b.members.filter(m=>m!==name);
+  if(b.members.length===0){
+    await supabase.from('branches').delete().eq('id',id);
+  }else{
+    await supabase.from('branches').update({members:b.members}).eq('id',id);
   }
-}
+  showNotif('取り消しました');
+  bootstrap();
+};
 
-async function handleLeaveClick(branch){
-  const name = getName(); if(!name) return ensureName();
-
-  try{
-    if(useSupabase){
-      // read current members
-      const { data } = await supabase.from('branches').select('members').eq('id', branch.id).maybeSingle();
-      let members = (data && data.members) ? data.members.slice() : [];
-
-      // if user not in members -> alert and return
-      if(!members.includes(name)){
-        alert('あなたは参加していません');
-        return;
-      }
-
-      // remove
-      members = members.filter(m=>m !== name);
-      if(members.length === 0){
-        await supabase.from('branches').delete().eq('id', branch.id);
-      } else {
-        await supabase.from('branches').update({ members }).eq('id', branch.id);
-      }
-
-      setNotifyThenReload('取り消しました');
-    } else {
-      const local = readLocal();
-      const idx = local.findIndex(x=>x.id===branch.id);
-      if(idx>=0){
-        // check membership
-        if(!local[idx].members.includes(name)){ alert('あなたは参加していません'); return; }
-        local[idx].members = local[idx].members.filter(m=>m!==name);
-        if(local[idx].members.length===0) local.splice(idx,1);
-        writeLocal(local);
-        setNotifyThenReload('取り消しました');
-      }
-    }
-  }catch(e){
-    console.error(e);
-    alert('取り消しでエラーが発生しました');
-  }
-}
-
-/* ---------- create branch (allow duplicate branches same date/time but ensure user not already participating same date/time) ---------- */
-createBtn.addEventListener('click', async ()=>{
-  const name = getName(); if(!name) return ensureName();
-  const iso = newDateSel.value; if(!iso){ alert('日付を選んでください'); return; }
-  const date = normalizeDateIsoToYYMMDD(iso);
-  const time = newTimeSel.value;
-  const place = newPlaceSel.value;
-
-  // double-check iso in options
-  const allowed = Array.from(newDateSel.options).map(o=>o.value);
-  if(!allowed.includes(iso)){ alert('有効な日付を選んでください'); return; }
-
-  try{
-    // ensure user is not already participating at same date+time
-    if(useSupabase){
-      const { data: conflicts, error } = await supabase.from('branches').select('id').eq('date', date).eq('time', time).contains('members',[name]);
-      if(error) throw error;
-      if(conflicts && conflicts.length>0){
-        alert('同じ日・時間帯には既に参加済みです。先に取り消してください。');
-        return;
-      }
-      // insert branch and automatically include creator as member
-      await supabase.from('branches').insert([{ date, time, place, title: '', members: [name] }]);
-      setNotifyThenReload('作成しました');
-    } else {
-      const local = readLocal();
-      const already = local.some(x=>{
-        const dx = x.date && x.date.indexOf('-')>=0 ? normalizeDateIsoToYYMMDD(x.date) : x.date;
-        return dx===date && x.time===time && x.members && x.members.includes(name);
-      });
-      if(already){ alert('同じ日・時間帯には既に参加済みです。先に取り消してください。'); return; }
-      const b = { id: uid(), date: date, time: time, place: place, title: '', members:[name] };
-      local.push(b); writeLocal(local); setNotifyThenReload('作成しました');
-    }
-  }catch(e){
-    console.error(e); alert('作成に失敗しました');
-  }
-});
-
-/* ---------- initial load + realtime subscribe ---------- */
 async function bootstrap(){
-  // show notify if any from reload
-  showPendingNotify();
-
-  // initial redirect to name page if no name
-  const name = getName();
-  if(!name){
-    location.href = 'name.html';
-    return;
-  }
-
-  if(!useSupabase){
-    // local fallback: ensure presets exist once
-    let local = readLocal();
-    if(local.length===0){
-      local = [
-        { id: uid(), date:'25/12/29', time:'夜', place:'京都', title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
-        { id: uid(), date:'26/01/03', time:'夜', place:'橋本', title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
-      ];
-      writeLocal(local);
-    }
-    renderBranches(local);
-  } else {
-    // fetch and render; ensure presets are present server-side if empty
-    const data = await fetchBranchesSupabase();
-    if(!data || data.length===0){
-      try{
-        await supabase.from('branches').insert([
-          { date:'25/12/29', time:'夜', place:'京都', title:'大学忘年会', members:['Hirao','トキツ','藤木'] },
-          { date:'26/01/03', time:'夜', place:'橋本', title:'中学同窓会', members:['Ogawa','かずき','MOE','Ami','yuina'] }
-        ]);
-      }catch(e){ console.warn('preset insert issue', e); }
-    }
-    const fresh = await fetchBranchesSupabase();
-    renderBranches(fresh);
-
-    // subscribe realtime; when remote changes detected, re-fetch and re-render
-    supabase.channel('public:branches')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, payload => {
-        (async ()=>{
-          const fresh2 = await fetchBranchesSupabase();
-          renderBranches(fresh2);
-        })();
-      }).subscribe().catch(e=>console.warn('subscribe err', e));
-  }
+  const { data } = await supabase.from('branches').select('*');
+  allBranches = data || [];
+  renderCalendar(allBranches);
+  renderBranches(allBranches);
 }
 bootstrap();
-
 </script>
 </body>
 </html>
