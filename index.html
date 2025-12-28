@@ -1,165 +1,233 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>年末年始予定</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>参加管理フォーム</title>
 
 <style>
-:root{
-  --bg:#fbfbfb;--card:#fff;--muted:#8f8f8f;--accent:#111;--radius:12px;--max-width:780px;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;background:var(--bg);
-  font-family:"Noto Sans JP",-apple-system,system-ui;
-  display:flex;justify-content:center;
-  padding:18px 12px 80px
-}
-.wrap{width:100%;max-width:var(--max-width)}
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    background: #f7f7f7;
+    margin: 0;
+    padding: 16px;
+  }
 
-.top{position:relative;height:56px;margin-bottom:12px}
-.title{font-size:28px;font-weight:600;position:absolute;left:50%;transform:translateX(-50%)}
-.edit-link{position:absolute;right:0;top:8px;font-size:14px;text-decoration:underline;cursor:pointer}
+  h1 {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
 
-.section-title{font-size:18px;font-weight:700;margin:28px 0 12px;padding-left:20px}
-.card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(0,0,0,0.04);margin-bottom:18px}
+  /* ===== ポップアップ ===== */
+  #popup {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 1000;
+  }
+  #popup.show {
+    opacity: 1;
+  }
 
-/* calendar */
-.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.cal-cell{
-  background:#fff;border-radius:10px;min-height:92px;padding:6px;
-  box-shadow:0 1px 3px rgba(0,0,0,.05);cursor:pointer
-}
-.cal-date{font-size:12px;font-weight:700}
-.cal-week{font-size:11px;color:#888;margin-left:4px}
-.cal-item{
-  font-size:11px;background:#111;color:#fff;border-radius:6px;
-  padding:2px 6px;margin-top:4px
-}
+  /* ===== カレンダー ===== */
+  .calendar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 16px;
+  }
 
-/* branch */
-.branch{background:#fff;border-radius:12px;padding:8px 10px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
-.branch-date{font-size:14px;color:#444;margin-bottom:6px}
-.branch-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;margin-bottom:6px}
-.branch-members{font-size:14px;margin-bottom:8px}
-.branch-actions{display:flex;gap:10px}
-.branch-actions button{flex:1;padding:9px;border-radius:8px;border:1px solid #ddd;background:#fff}
+  .day {
+    min-width: 110px;
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
 
-.notif{
-  position:fixed;left:50%;transform:translateX(-50%);
-  bottom:24px;background:#111;color:#fff;
-  padding:10px 14px;border-radius:10px;opacity:0
-}
+  .day h2 {
+    font-size: 14px;
+    margin: 0 0 6px;
+    text-align: center;
+  }
+
+  .participants {
+    font-size: 13px;
+    min-height: 40px;
+  }
+
+  .btn {
+    width: 100%;
+    margin-top: 6px;
+    padding: 6px;
+    font-size: 13px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .join {
+    background: #007aff;
+    color: #fff;
+  }
+
+  .cancel {
+    background: #ddd;
+  }
+
+  /* ===== 新規作成枠 ===== */
+  .new-entry {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .new-entry input {
+    flex: 1;
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  .new-entry button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
 </style>
 </head>
 
 <body>
-<div class="wrap">
-  <div class="top">
-    <div class="title">年末年始予定</div>
-    <div class="edit-link" onclick="location.href='name.html?edit=1'">表示名修正</div>
-  </div>
 
-  <!-- カレンダー -->
-  <div class="section-title">カレンダー</div>
-  <div class="card">
-    <div class="calendar" id="calendar"></div>
-  </div>
+<h1>参加カレンダー</h1>
 
-  <!-- 新規作成 -->
-  <div class="section-title">新規作成</div>
-  <div class="card">
-    <label class="small">日付</label>
-    <select id="newDate"></select>
+<div id="popup">更新しました</div>
 
-    <label class="small" style="margin-top:10px">時間帯</label>
-    <select id="newTime"><option>昼</option><option>夜</option></select>
+<div class="calendar" id="calendar"></div>
 
-    <label class="small" style="margin-top:10px">場所</label>
-    <select id="newPlace">
-      <option>橋本</option><option>大阪</option><option>京都</option><option>どこでも</option>
-    </select>
-
-    <button class="primary" id="createBtn" style="margin-top:12px">新規作成</button>
-  </div>
-
-  <!-- 進行中 -->
-  <div class="section-title">進行中</div>
-  <div class="card" id="reserveList">読み込み中...</div>
+<div class="new-entry">
+  <input type="text" id="nameInput" placeholder="表示名を入力" />
+  <button onclick="saveName()">保存</button>
 </div>
 
-<div class="notif" id="notif"></div>
-
 <script>
-const SUPABASE_URL = "https://agbfcpaxsrgebxjtkvdh.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOi...";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+/* ===== 設定 ===== */
+const ANY_KEY = "あなたが送ってくれたANY_KEYをここに"; // ←ここだけ確認
+const STORAGE_KEY = "booking-data-v2";
+const NAME_KEY = "display-name";
 
-const calendarEl = document.getElementById('calendar');
-const reserveList = document.getElementById('reserveList');
-const notif = document.getElementById('notif');
-const weekJP=['日','月','火','水','木','金','土'];
+/* ===== 日付固定 ===== */
+const dates = [
+  "12/29", "12/30", "12/31", "1/1", "1/2", "1/3", "1/4"
+];
 
-let allBranches=[];
+/* ===== 状態 ===== */
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+let displayName = localStorage.getItem(NAME_KEY) || "";
 
-function showNotif(m){
-  notif.textContent=m;notif.style.opacity=1;
-  setTimeout(()=>notif.style.opacity=0,2000);
-}
+/* ===== 初期表示 ===== */
+const calendar = document.getElementById("calendar");
 
-function populateDates(){
-  const s=new Date(2025,11,29),e=new Date(2026,0,4);
-  const sel=document.getElementById('newDate'); sel.innerHTML='';
-  for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
-    const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
-    const o=document.createElement('option');
-    o.value=`${y}-${m}-${dd}`; o.textContent=`${String(y).slice(2)}/${m}/${dd}`;
-    sel.appendChild(o);
-  }
-}
-populateDates();
+function render() {
+  calendar.innerHTML = "";
 
-function renderCalendar(list){
-  calendarEl.innerHTML='';
-  const map={};
-  list.forEach(b=>{ if(!map[b.date]) map[b.date]=[]; map[b.date].push(b); });
+  dates.forEach(date => {
+    if (!data[date]) data[date] = [];
 
-  for(let d=new Date(2025,11,29);d<=new Date(2026,0,4);d.setDate(d.getDate()+1)){
-    const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
-    const key=`${String(y).slice(2)}/${m}/${dd}`;
-    const cell=document.createElement('div');
-    cell.className='cal-cell';
-    cell.innerHTML=`<div class="cal-date">${m}/${dd}<span class="cal-week">(${weekJP[d.getDay()]})</span></div>`;
-    (map[key]||[]).forEach(b=>cell.innerHTML+=`<div class="cal-item">${b.place}/${b.time}</div>`);
-    cell.onclick=()=>renderBranches(map[key]||[]);
-    calendarEl.appendChild(cell);
-  }
-}
+    const div = document.createElement("div");
+    div.className = "day";
 
-function renderBranches(list){
-  reserveList.innerHTML='';
-  if(list.length===0){reserveList.textContent='予定なし';return;}
-  list.forEach(b=>{
-    const el=document.createElement('div');el.className='branch';
-    el.innerHTML=`
-      <div class="branch-date">${b.date} / ${b.time} / ${b.place}</div>
-      <div class="branch-title">${b.title||'（タイトル未設定）'} <span>📝</span></div>
-      <div class="branch-members">${b.members.join('、')}</div>
+    const joined = data[date].includes(displayName);
+
+    div.innerHTML = `
+      <h2>${date}</h2>
+      <div class="participants">
+        ${data[date].join("<br>")}
+      </div>
+      <button class="btn ${joined ? "cancel" : "join"}"
+        onclick="${joined ? "cancelJoin" : "join"}('${date}')">
+        ${joined ? "取消" : "参加"}
+      </button>
     `;
-    reserveList.appendChild(el);
+
+    calendar.appendChild(div);
   });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-async function bootstrap(){
-  const {data}=await sb.from('branches').select('*').order('date');
-  allBranches=data||[];
-  renderCalendar(allBranches);
-  renderBranches(allBranches);
+/* ===== 参加 ===== */
+function join(date) {
+  if (!displayName) {
+    alert("表示名を先に保存してください");
+    return;
+  }
+
+  // 即時反映（体感速度改善）
+  data[date].push(displayName);
+  render();
+  showPopup("参加しました");
 }
-bootstrap();
+
+/* ===== 取消 ===== */
+function cancelJoin(date) {
+  data[date] = data[date].filter(n => n !== displayName);
+  render();
+  showPopup("取消しました");
+}
+
+/* ===== 表示名保存（過去分も連動修正） ===== */
+function saveName() {
+  const input = document.getElementById("nameInput").value.trim();
+  if (!input) return;
+
+  const oldName = displayName;
+  displayName = input;
+
+  if (oldName && oldName !== displayName) {
+    Object.keys(data).forEach(date => {
+      data[date] = data[date].map(n => n === oldName ? displayName : n);
+    });
+  }
+
+  localStorage.setItem(NAME_KEY, displayName);
+  render();
+  showPopup("表示名を更新しました");
+}
+
+/* ===== ポップアップ ===== */
+function showPopup(text) {
+  const popup = document.getElementById("popup");
+  popup.textContent = text;
+  popup.classList.add("show");
+
+  setTimeout(() => {
+    popup.classList.remove("show");
+  }, 2000);
+}
+
+/* ===== リロード後ポップアップ ===== */
+window.addEventListener("load", () => {
+  if (displayName) {
+    setTimeout(() => {
+      showPopup("読み込み完了");
+    }, 2000);
+  }
+});
+
+/* 初回描画 */
+render();
 </script>
+
 </body>
 </html>
