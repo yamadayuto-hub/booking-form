@@ -116,7 +116,7 @@ let selectedDate=null;
 /* ===== 新規作成 日付（12/29〜1/4） ===== */
 function populateNewDates(){
   newDateSel.innerHTML='';
-  for(let d=new Date(2026,8,10);d<=new Date(2026,8,13);d.setDate(d.getDate()+1)){
+  for(let d=new Date(2026,7,10);d<=new Date(2026,7,13);d.setDate(d.getDate()+1)){
     const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
     const v=`${String(y).slice(2)}/${m}/${dd}`;
     const o=document.createElement('option');
@@ -132,7 +132,7 @@ function renderCalendar(list){
   const map={};
   list.forEach(b=>{if(!map[b.date])map[b.date]=[];map[b.date].push(b);});
 
-  for(let d=new Date(2026,8,10);d<=new Date(2026,8,13);d.setDate(d.getDate()+1)){
+  for(let d=new Date(2026,7,10);d<=new Date(2026,7,13);d.setDate(d.getDate()+1)){
     const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
     const key=`${String(y).slice(2)}/${m}/${dd}`;
 
