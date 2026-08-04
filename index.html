@@ -172,7 +172,7 @@ function renderBranches(list){
     el.querySelector('.pencil').onclick=async()=>{
       const t=prompt('タイトル編集',b.title||'');
       if(t===null)return;
-      await sb.from('branches').update({title:t}).eq('id',b.id);
+      await sb.from('branches_august').update({title:t}).eq('id',b.id);
       location.reload();
     };
     reserveList.appendChild(el);
@@ -183,7 +183,7 @@ function renderBranches(list){
 document.getElementById('createBtn').onclick=async()=>{
   const name=localStorage.getItem('meeting_app_username');
   if(!name){location.href='name.html';return;}
-  await sb.from('branches').insert([{
+  await sb.from('branches_august').insert([{
     date:newDateSel.value,
     time:newTime.value,
     place:newPlace.value,
@@ -196,23 +196,23 @@ document.getElementById('createBtn').onclick=async()=>{
 /* ===== 参加 / 取り消し ===== */
 async function join(id){
   const name=localStorage.getItem('meeting_app_username');
-  const {data}=await sb.from('branches').select('members').eq('id',id).single();
+  const {data}=await sb.from('branches_august').select('members').eq('id',id).single();
   if(data.members.includes(name))return;
-  await sb.from('branches').update({members:[...data.members,name]}).eq('id',id);
+  await sb.from('branches_august').update({members:[...data.members,name]}).eq('id',id);
   location.reload();
 }
 async function leave(id){
   const name=localStorage.getItem('meeting_app_username');
-  const {data}=await sb.from('branches').select('members').eq('id',id).single();
+  const {data}=await sb.from('branches_august').select('members').eq('id',id).single();
   const m=data.members.filter(x=>x!==name);
-  if(m.length===0) await sb.from('branches').delete().eq('id',id);
-  else await sb.from('branches').update({members:m}).eq('id',id);
+  if(m.length===0) await sb.from('branches_august').delete().eq('id',id);
+  else await sb.from('branches_august').update({members:m}).eq('id',id);
   location.reload();
 }
 
 /* ===== 起動 ===== */
 async function bootstrap(){
-  const {data}=await sb.from('branches').select('*').order('date');
+  const {data}=await sb.from('branches_august').select('*').order('date');
   allBranches=data||[];
   renderCalendar(allBranches);
   renderBranches(allBranches);
